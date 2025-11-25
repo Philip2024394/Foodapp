@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" href="favicon.ico" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    
+    <!-- PWA and Mobile Themeing -->
+    <link rel="manifest" href="manifest.json" />
+    <meta name="theme-color" content="#000000" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <link rel="apple-touch-icon" href="icon-192x192.png" />
+    
+    <title>IndaStreet</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+      body {
+        font-family: 'Poppins', sans-serif;
+        overflow-x: hidden;
+        background-color: #000000; /* Pure Black background */
+        color: #d6d3d1; /* Light stone text */
+        scrollbar-width: none; /* For Firefox */
+        -ms-overflow-style: none;  /* For Internet Explorer and Edge */
+        overscroll-behavior-y: contain;
+      }
+      /* Hide scrollbar for Chrome, Safari and Opera */
+      ::-webkit-scrollbar {
+        display: none;
+      }
+      @keyframes fadeInScale {
+        from {
+          opacity: 0;
+          transform: scale(0.95);
+        }
+        to {
+          opacity: 1;
+          transform: scale(1);
+        }
+      }
+      .animate-fade-in-scale {
+        animation: fadeInScale 0.3s ease-out forwards;
+      }
+
+      /* New page transition animation */
+      @keyframes pageRiseIn {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      .animate-page-rise-in {
+        animation: pageRiseIn 0.4s ease-out forwards;
+      }
+
+      /* Side drawer item cascade animation */
+      @keyframes cascadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+      }
+      .animate-cascade-in {
+        animation: cascadeIn 0.5s ease-out forwards;
+        opacity: 0; /* Start hidden */
+        animation-fill-mode: forwards;
+      }
+
+      /* Glowing tile animation */
+      @keyframes glow {
+        0%, 100% {
+          box-shadow: 0 0 8px rgba(249, 115, 22, 0.4), 0 0 16px rgba(249, 115, 22, 0.2);
+          border-color: rgba(249, 115, 22, 0.7);
+        }
+        50% {
+          box-shadow: 0 0 16px rgba(249, 115, 22, 0.6), 0 0 24px rgba(249, 115, 22, 0.4);
+          border-color: rgba(249, 115, 22, 1);
+        }
+      }
+      .glowing-tile {
+        animation: glow 3s ease-in-out infinite;
+      }
+
+      /* New discount glow animation */
+      @keyframes discountGlow {
+        0%, 100% {
+          box-shadow: 0 0 6px rgba(251, 146, 60, 0.6), 0 0 12px rgba(251, 146, 60, 0.3);
+          border-color: rgba(251, 146, 60, 0.7); /* orange-400 */
+        }
+        50% {
+          box-shadow: 0 0 12px rgba(251, 146, 60, 0.8), 0 0 18px rgba(251, 146, 60, 0.5);
+          border-color: rgba(251, 146, 60, 1);
+        }
+      }
+      .discount-glow {
+        animation: discountGlow 2.5s ease-in-out infinite;
+      }
+      
+      /* New reward glow animation */
+      @keyframes rewardGlow {
+        0%, 100% {
+          box-shadow: 0 0 6px rgba(245, 158, 11, 0.6), 0 0 12px rgba(245, 158, 11, 0.3); /* amber-500 */
+        }
+        50% {
+          box-shadow: 0 0 12px rgba(245, 158, 11, 0.8), 0 0 18px rgba(245, 158, 11, 0.5);
+        }
+      }
+      .reward-glow {
+        animation: rewardGlow 2.5s ease-in-out infinite;
+      }
+
+      /* New text shimmer animation */
+      @keyframes textShimmer {
+        from {
+          background-position: -200% 0;
+        }
+        to {
+          background-position: 200% 0;
+        }
+      }
+      .animate-text-shimmer {
+        background: linear-gradient(
+          90deg,
+          #fde68a, /* amber-200 */
+          #fbbf24, /* amber-400 */
+          #f59e0b, /* amber-500 */
+          #fbbf24,
+          #fde68a
+        );
+        background-size: 200% 100%;
+        animation: textShimmer 3s linear infinite;
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        text-fill-color: transparent;
+      }
+
+      /* New satellite ping animation for available drivers */
+      @keyframes ping {
+        75%, 100% {
+          transform: scale(1.8);
+          opacity: 0;
+        }
+      }
+      .satellite-ping::before {
+        content: '';
+        position: absolute;
+        inset: -2px;
+        border-radius: 9999px;
+        border: 3px solid rgba(74, 222, 128, 0.7); /* green-400 with opacity */
+        animation: ping 1.75s cubic-bezier(0, 0, 0.2, 1) infinite;
+      }
+
+      /* New header nav link hover effect */
+      .nav-link-hover {
+        position: relative;
+        padding-bottom: 4px; /* Add space for the underline */
+      }
+      .nav-link-hover::after {
+        content: '';
+        position: absolute;
+        width: 100%;
+        height: 2px;
+        bottom: 0;
+        left: 0;
+        background-color: #f97316; /* orange-500 */
+        transform: scaleX(0);
+        transform-origin: center;
+        transition: transform 0.3s ease-out;
+      }
+      .nav-link-hover:hover::after {
+        transform: scaleX(1);
+      }
+
+
+      /* Floating pins animation */
+      @keyframes float {
+        0% {
+          transform: translateY(0px);
+          opacity: 0.7;
+        }
+        50% {
+          transform: translateY(-20px);
+          opacity: 0.9;
+        }
+        100% {
+          transform: translateY(0px);
+          opacity: 0.7;
+        }
+      }
+      
+      /* Floating 'S' animation */
+      @keyframes floatS {
+        0%, 100% {
+          transform: translateY(0);
+        }
+        50% {
+          transform: translateY(-4px);
+        }
+      }
+      .animate-float-s {
+        display: inline-block; /* Necessary for transform to apply */
+        animation: floatS 3s ease-in-out infinite;
+      }
+      
+      /* Dance animation for 'Arrived!' text */
+      @keyframes dance {
+        0%, 100% {
+            transform: translateY(0) rotate(0);
+        }
+        25% {
+            transform: translateY(-4px) rotate(-3deg);
+        }
+        50% {
+            transform: translateY(0) rotate(0);
+        }
+        75% {
+            transform: translateY(-4px) rotate(3deg);
+        }
+      }
+      .animate-dance {
+          display: inline-block; /* Necessary for transform */
+          animation: dance 1.5s ease-in-out infinite;
+      }
+      
+      /* New eye glow animation */
+      @keyframes eyeGlow {
+        0%, 100% {
+          box-shadow: 0 0 12px rgba(249, 115, 22, 0.5), 0 0 20px rgba(249, 115, 22, 0.3);
+        }
+        50% {
+          box-shadow: 0 0 20px rgba(249, 115, 22, 0.8), 0 0 32px rgba(249, 115, 22, 0.5);
+        }
+      }
+      .animate-eye-glow {
+        animation: eyeGlow 2.5s ease-in-out infinite;
+      }
+
+      /* Fix for browser autofill background color */
+      input:-webkit-autofill,
+      input:-webkit-autofill:hover,
+      input:-webkit-autofill:focus,
+      input:-webkit-autofill:active {
+          -webkit-box-shadow: 0 0 0 30px rgba(0,0,0,0.2) inset !important; /* Corresponds to bg-black/20 */
+          -webkit-text-fill-color: #fff !important;
+          transition: background-color 5000s ease-in-out 0s; /* Hack to delay color change */
+      }
+
+      /* Car bobbing animation */
+      @keyframes carBob {
+        0%, 100% {
+          transform: translateY(0);
+        }
+        50% {
+          transform: translateY(-2px);
+        }
+      }
+      .animate-car-bob {
+        animation: carBob 2s ease-in-out infinite;
+      }
+
+      /* Bike constant movement animation */
+      @keyframes bikeConstantMove {
+        0%, 100% {
+          transform: translateY(0px);
+        }
+        50% {
+          transform: translateY(1px);
+        }
+      }
+      .animate-bike-constant-move {
+          animation: bikeConstantMove 2.5s ease-in-out infinite;
+      }
+
+      /* Road lines animation */
+      @keyframes roadLines {
+        from {
+          background-position-y: 0;
+        }
+        to {
+          background-position-y: 160px; /* Move one full pattern length */
+        }
+      }
+
+      .road-container {
+        position: absolute;
+        bottom: 24%; /* Adjust position for perspective */
+        left: 0;
+        right: 0;
+        height: 30px; /* Increase height to make perspective visible */
+        perspective: 200px; /* Apply perspective to the container */
+      }
+
+      .animate-road-lines {
+        width: 100%;
+        height: 100%;
+        background-image: repeating-linear-gradient(
+          #9ca3af, /* gray-400 */
+          #9ca3af 40px, /* dash length */
+          transparent 40px,
+          transparent 160px /* dash + larger gap length */
+        );
+        background-size: 2px 160px; /* 2px thin line, pattern repeats every 160px vertically */
+        background-repeat: repeat-y;
+        background-position: center;
+        animation: roadLines 0.7s linear infinite;
+        transform-style: preserve-3d;
+        transform: rotateX(75deg) rotateY(-3deg); /* Angle the road */
+      }
+
+      /* Road lines progress animation */
+      @keyframes roadLinesProgress {
+        from {
+          background-position-x: 0;
+        }
+        to {
+          background-position-x: -50px;
+        }
+      }
+      .animate-road-lines-progress {
+        animation: roadLinesProgress 0.6s linear infinite;
+      }
+      
+      .progress-road-markings {
+        background-image: repeating-linear-gradient(
+            90deg,
+            rgba(255,255,255,0.4), /* semi-transparent white */
+            rgba(255,255,255,0.4) 25px,
+            transparent 25px,
+            transparent 50px
+        );
+        background-size: 50px 100%;
+      }
+
+      /* Smoke puff animation */
+      @keyframes smokePuff {
+        0% {
+          transform: scale(0.6);
+          opacity: 0.8;
+        }
+        100% {
+          transform: scale(3.5) translateY(-50px);
+          opacity: 0;
+        }
+      }
+      .animate-smoke-puff {
+        position: absolute;
+        width: 1.5rem; /* w-6 */
+        height: 1.5rem; /* h-6 */
+        background-color: rgba(71, 85, 105, 0.6); /* slate-600 with opacity */
+        border-radius: 9999px; /* rounded-full */
+        animation: smokePuff 2.5s ease-out forwards;
+      }
+
+      /* Save booking progress animation */
+      @keyframes saveProgress {
+        from {
+          stroke-dashoffset: 251.2; /* Circumference of circle with r=40 */
+        }
+        to {
+          stroke-dashoffset: 0;
+        }
+      }
+      .save-progress-indicator {
+        animation: saveProgress 3s linear forwards;
+      }
+      
+      /* New rim slide animation */
+      @keyframes rim-slide-y {
+        0% {
+          transform: translateY(-102%);
+        }
+        50% {
+          transform: translateY(102%);
+        }
+        100% {
+          transform: translateY(-102%);
+        }
+      }
+      .rim-slide-container {
+        position: relative;
+        overflow: hidden;
+      }
+      .rim-slide-container::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: #f97316; /* orange-500 */
+        box-shadow: 0 0 8px #f97316, 0 0 12px #f97316;
+        animation: rim-slide-y 4s ease-in-out infinite;
+      }
+
+      /* New glowing burger icon animation */
+      @keyframes orangeGlow {
+        0%, 100% {
+          text-shadow: 0 0 4px rgba(249, 115, 22, 0.6), 0 0 8px rgba(249, 115, 22, 0.4);
+          color: #fb923c; /* orange-400 */
+        }
+        50% {
+          text-shadow: 0 0 8px rgba(249, 115, 22, 0.9), 0 0 12px rgba(249, 115, 22, 0.6);
+          color: #f97316; /* orange-500 */
+        }
+      }
+      .animate-orange-glow {
+        animation: orangeGlow 2.5s ease-in-out infinite;
+      }
+
+      /* Flip Card Animation Classes */
+      .flip-card {
+        background-color: transparent;
+        perspective: 1000px;
+      }
+
+      .flip-card-inner {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        text-align: center;
+        transition: transform 0.8s;
+        transform-style: preserve-3d;
+      }
+
+      .flip-card.flipped .flip-card-inner {
+        transform: rotateY(180deg);
+      }
+
+      .flip-card-front, .flip-card-back {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        -webkit-backface-visibility: hidden;
+        backface-visibility: hidden;
+        border-radius: 1rem; /* rounded-2xl */
+        overflow: hidden;
+      }
+
+      .flip-card-back {
+        transform: rotateY(180deg);
+      }
+
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react/": "https://aistudiocdn.com/react@^19.1.1/",
+    "react": "https://aistudiocdn.com/react@^19.1.1",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.1.1/",
+    "@supabase/supabase-js": "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm",
+    "@google/genai": "https://cdn.jsdelivr.net/npm/@google/genai/+esm"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+  <body>
+    <noscript>You need to enable JavaScript to run this app.</noscript>
+    <div id="root"></div>
+    <script type="module" src="index.tsx"></script>
+  <script type="module" src="/index.tsx"></script>
+</body>
+</html>

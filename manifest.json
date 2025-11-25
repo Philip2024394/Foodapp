@@ -1,0 +1,21 @@
+{
+  "short_name": "IndaStreet",
+  "name": "IndaStreet",
+  "description": "A modern multi-service application for Indonesia, offering ride-hailing, parcel delivery, vehicle rentals, and a marketplace for local street food vendors and shops. Connect directly with drivers and vendors in your community.",
+  "icons": [
+    {
+      "src": "/icon-192x192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "/icon-512x512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": "/",
+  "display": "standalone",
+  "theme_color": "#f97316",
+  "background_color": "#1c1917"
+}

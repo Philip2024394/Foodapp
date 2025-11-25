@@ -5,7 +5,6 @@ import { useDataContext } from '../../hooks/useDataContext';
 import { useNavigationContext } from '../../hooks/useNavigationContext';
 import { useCartContext } from '../../hooks/useCartContext';
 import BookingHistoryCard from '../profile/BookingHistoryCard';
-import { useBookingContext } from '../../hooks/useBookingContext';
 import { useAuthContext } from '../../hooks/useAuthContext';
 import LoadingSpinner from '../common/LoadingSpinner';
 
@@ -91,7 +90,6 @@ const Profile: React.FC = () => {
     const { savedBookingIds, saveBooking, unsaveBooking, bookingHistory } = useDataContext();
     const { navigateTo } = useNavigationContext();
     const { guestRewardStatus } = useCartContext();
-    const { rebookFromHistory } = useBookingContext();
 
     const sortedBookings = useMemo(() => {
         return [...bookingHistory].sort((a, b) => {
@@ -190,7 +188,6 @@ const Profile: React.FC = () => {
                                         isSaved={savedBookingIds.includes(booking.id)}
                                         onSaveToggle={saveBooking}
                                         onUnsaveToggle={unsaveBooking}
-                                        onRebook={rebookFromHistory}
                                     />
                                 ))}
                             </div>

@@ -1,7 +1,6 @@
 import React from 'react';
 import { Vehicle, Page } from '../../types';
 import { StarIcon } from '../common/Icon';
-import { useBookingContext } from '../../hooks/useBookingContext';
 import { useNavigationContext } from '../../hooks/useNavigationContext';
 
 interface FavoriteDriverCardProps {
@@ -9,13 +8,10 @@ interface FavoriteDriverCardProps {
 }
 
 const FavoriteDriverCard: React.FC<FavoriteDriverCardProps> = ({ driver }) => {
-  const { navigateToRideWithOptions } = useBookingContext();
   const { selectDriverForProfile } = useNavigationContext();
 
   const handleBookNow = () => {
-    // This will pre-fill the vehicle type on the booking screen.
-    // The user will still need to enter their destination.
-    navigateToRideWithOptions({
+    console.log('Ride booking not yet implemented:', {
         destination: '', 
         vehicleType: driver.type,
     });

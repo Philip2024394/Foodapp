@@ -6,7 +6,6 @@ import { ContentProvider } from './context/ContentContext';
 import { DataProvider } from './context/DataContext';
 import { NavigationProvider } from './context/NavigationContext';
 import { CartProvider } from './context/CartContext';
-import { BookingProvider } from './context/BookingContext';
 
 // PWA Service Worker Registration
 if ('serviceWorker' in navigator) {
@@ -31,9 +30,7 @@ const AppProviders: React.FC<{ children: React.ReactNode }> = ({ children }) => 
       <DataProvider>
         <NavigationProvider>
           <CartProvider>
-            <BookingProvider>
-              {children}
-            </BookingProvider>
+            {children}
           </CartProvider>
         </NavigationProvider>
       </DataProvider>

@@ -7,7 +7,6 @@ import { formatIndonesianCurrency } from '../../utils/formatters';
 import VendorVehicleCard from '../booking/VendorVehicleCard';
 import { useDataContext } from '../../hooks/useDataContext';
 import { useCartContext } from '../../hooks/useCartContext';
-import { useBookingContext } from '../../hooks/useBookingContext';
 import { useNavigationContext } from '../../hooks/useNavigationContext';
 import WhatsAppChatButton from '../common/WhatsAppChatButton';
 import Modal from '../common/Modal';
@@ -370,7 +369,6 @@ const INFO_MESSAGES = [
 const VendorPage: React.FC = () => {
     const { currentVendor: navVendor, navigateTo, openProfileImageModal } = useNavigationContext();
     const { vendors, itemAvailability, streetFoodItems, shopItems, vehicles, reviews, vehicleBookings } = useDataContext();
-    const { navigateToRideWithOptions, rentalFilter, clearRentalFilter } = useBookingContext();
     
     // Fetch fresh vendor details from DataContext using the ID from navigation
     // This ensures we have the latest data (including vouchers) even if Navigation context is stale
@@ -392,12 +390,6 @@ const VendorPage: React.FC = () => {
             setProductPage(1); // Reset product pagination when vendor changes
         }
     }, [vendorDetails]);
-
-    useEffect(() => {
-        return () => {
-            clearRentalFilter();
-        };
-    }, [clearRentalFilter]);
     
     useEffect(() => {
         if (vendorDetails?.type === 'business') {
@@ -468,8 +460,6 @@ const VendorPage: React.FC = () => {
     const hasSales = useMemo(() => vendorVehicles.some(v => v.listingType === 'sale' || v.listingType === 'both'), [vendorVehicles]);
 
     const getInitialView = () => {
-        if (rentalFilter?.listingMode === 'sale' && hasSales) return 'sale';
-        if (rentalFilter?.listingMode === 'rent' && hasRentals) return 'rent';
         if (hasRentals) return 'rent';
         if (hasSales) return 'sale';
         return 'rent';
@@ -487,13 +477,9 @@ const VendorPage: React.FC = () => {
 
     const handleVisitClick = (vehicleType: VehicleType) => {
         if (!vendorDetails) return;
-        navigateToRideWithOptions({
+        console.log('Ride booking not yet implemented:', {
             destination: `${vendorDetails.name}, ${vendorDetails.street}, ${vendorDetails.address}`,
-            vehicleType: vehicleType,
-            metadata: {
-                visitDiscount: true,
-                vendorName: vendorDetails.name
-            }
+            vehicleType: vehicleType
         });
     };
     

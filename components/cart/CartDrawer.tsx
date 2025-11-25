@@ -1,7 +1,6 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { useCartContext } from '../../hooks/useCartContext';
 import { useDataContext } from '../../hooks/useDataContext';
-import { useBookingContext } from '../../hooks/useBookingContext';
 import { useAuthContext } from '../../hooks/useAuthContext';
 import DrawerCartItem from './DrawerCartItem';
 import { CloseIcon, TrashIcon, LocationPinIcon } from '../common/Icon';
@@ -14,7 +13,6 @@ interface CartDrawerProps {
 
 const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
   const { cart, getCartTotal, clearCart, paymentMethod, setPaymentMethod } = useCartContext();
-  const { navigateToRide } = useBookingContext();
   const { vendors } = useDataContext();
   const { location, confirmLocation } = useAuthContext();
 
@@ -49,7 +47,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
         confirmLocation(deliveryAddress);
     }
     onClose();
-    navigateToRide('parcel');
+    console.log('Delivery booking not yet implemented');
   };
 
   return (

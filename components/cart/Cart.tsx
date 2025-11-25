@@ -4,14 +4,12 @@ import { Page, Vendor } from '../../types';
 import { LocationPinIcon, StarIcon, ClipboardIcon } from '../common/Icon';
 import { useCartContext } from '../../hooks/useCartContext';
 import { useNavigationContext } from '../../hooks/useNavigationContext';
-import { useBookingContext } from '../../hooks/useBookingContext';
 import { useAuthContext } from '../../hooks/useAuthContext';
 import { useDataContext } from '../../hooks/useDataContext';
 
 const Cart: React.FC = () => {
   const { cart, getCartTotal, clearCart, guestRewardStatus, paymentMethod, setPaymentMethod } = useCartContext();
   const { navigateTo } = useNavigationContext();
-  const { navigateToRide } = useBookingContext();
   const { location, openLocationModal } = useAuthContext();
   const { vendors } = useDataContext();
 
@@ -69,7 +67,7 @@ const Cart: React.FC = () => {
   }
 
   const handleBooking = () => {
-    navigateToRide('parcel');
+    console.log('Delivery booking not yet implemented');
   };
 
   const handleContinueShopping = () => {

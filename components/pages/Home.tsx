@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { Page } from '../../types';
 import DisplayText from '../common/DisplayText';
 import { useNavigationContext } from '../../hooks/useNavigationContext';
-import { useBookingContext } from '../../hooks/useBookingContext';
 import { useAuthContext } from '../../hooks/useAuthContext';
 
 const ServiceTile: React.FC<{ title: string; icon: React.ReactNode; onClick: () => void; isGlowing: boolean; isLargeIcon?: boolean; textOnTop?: boolean; }> = ({ title, icon, onClick, isGlowing, isLargeIcon, textOnTop }) => (
@@ -27,17 +26,16 @@ interface ServiceInfo {
 
 const Home: React.FC = () => {
   const { navigateTo } = useNavigationContext();
-  const { navigateToRide } = useBookingContext();
   const { openLocationModal, location } = useAuthContext();
   const [glowingTileIndex, setGlowingTileIndex] = useState(0);
 
   const handleServiceClick = (title: string) => {
     switch (title) {
         case 'Car - Bike':
-            navigateToRide('ride');
+            console.log('Ride booking not yet implemented');
             break;
         case 'Parcel':
-            navigateToRide('parcel');
+            console.log('Parcel booking not yet implemented');
             break;
         case 'Rentals':
             navigateTo(Page.RENTAL);

@@ -8,7 +8,7 @@ interface BookingHistoryCardProps {
   isSaved: boolean;
   onSaveToggle: (bookingId: string) => void;
   onUnsaveToggle: (bookingId: string) => void;
-  onRebook: (booking: Booking) => void;
+  onRebook?: (booking: Booking) => void;
 }
 
 const BookingHistoryCard: React.FC<BookingHistoryCardProps> = ({ booking, isSaved, onSaveToggle, onUnsaveToggle, onRebook }) => {
@@ -64,9 +64,9 @@ const BookingHistoryCard: React.FC<BookingHistoryCardProps> = ({ booking, isSave
     <div
       role="button"
       tabIndex={0}
-      title="Click to rebook"
-      onClick={() => onRebook(booking)}
-      className="bg-white/5 backdrop-blur-lg border border-white/10 p-4 rounded-xl flex items-center space-x-4 transition-all hover:bg-white/10 cursor-pointer select-none"
+      title={onRebook ? "Click to rebook" : undefined}
+      onClick={() => onRebook?.(booking)}
+      className={`bg-white/5 backdrop-blur-lg border border-white/10 p-4 rounded-xl flex items-center space-x-4 transition-all hover:bg-white/10 ${onRebook ? 'cursor-pointer' : ''} select-none`}
     >
       <div className="flex-shrink-0 p-3 bg-black/20 rounded-full text-orange-500">{icon}</div>
       <div className="flex-grow min-w-0">

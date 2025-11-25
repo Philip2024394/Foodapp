@@ -1,9 +1,12 @@
 import React from 'react';
 import DisplayText from '../common/DisplayText';
 import { useAuthContext } from '../../hooks/useAuthContext';
+import { useNavigationContext } from '../../hooks/useNavigationContext';
+import { Page } from '../../types';
 
 const Landing: React.FC = () => {
   const { selectLanguage } = useAuthContext();
+  const { navigateTo } = useNavigationContext();
 
   return (
     <div className="relative h-screen w-screen flex flex-col items-center justify-center text-white text-center p-4">
@@ -47,6 +50,17 @@ const Landing: React.FC = () => {
             className="px-10 py-4 bg-orange-600 backdrop-blur-lg border border-orange-500 text-white font-bold text-lg rounded-full shadow-lg hover:bg-orange-700 transform hover:scale-105 transition-all duration-300"
           >
             English
+          </button>
+        </div>
+        
+        {/* Restaurant Dashboard Access */}
+        <div className="mt-8 pt-6 border-t border-white/20">
+          <p className="text-sm text-stone-400 mb-3">Restaurant Partner?</p>
+          <button
+            onClick={() => navigateTo(Page.RESTAURANT_DASHBOARD)}
+            className="px-8 py-3 bg-stone-800/60 backdrop-blur-lg border border-stone-600 text-white font-semibold rounded-full shadow-lg hover:bg-stone-700/60 transform hover:scale-105 transition-all duration-300"
+          >
+            Restaurant Dashboard
           </button>
         </div>
       </div>

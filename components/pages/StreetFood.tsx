@@ -1,5 +1,5 @@
-import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { MenuItem, Page, Vendor, VehicleType } from '../../types';
+import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
+import { MenuItem, Page, Vendor, VehicleType, MembershipTier } from '../../types';
 import { useDataContext } from '../../hooks/useDataContext';
 import { useNavigationContext } from '../../hooks/useNavigationContext';
 import { useCartContext } from '../../hooks/useCartContext';
@@ -7,6 +7,7 @@ import { HeartIcon, ShareIcon, FoodMenuIcon, StarIcon, LocationPinIcon, SearchIc
 import { formatIndonesianCurrency, formatCount } from '../../utils/formatters';
 import CartDrawer from '../cart/CartDrawer';
 import SlideOutMenu from '../common/SlideOutMenu';
+import { isMembershipActive } from '../../constants';
 
 // Helper to shuffle array
 const shuffleArray = <T,>(array: T[]): T[] => {
@@ -35,7 +36,34 @@ const VendorFeedItem: React.FC<VendorFeedItemProps> = ({ vendor, onOpenMenu, isM
     const menuItems = useMemo(() => 
         streetFoodItems.filter(item => item.vendorId === vendor.id && item.isAvailable)
     , [vendor.id, streetFoodItems]);
-    const heroItems = useMemo(() => menuItems.filter(item => item.videoUrl || item.image).slice(0, 5), [menuItems]);
+    
+    // Check if vendor has active membership and promotional content
+    const hasActiveMembership = useMemo(() => 
+        isMembershipActive(vendor.membershipExpiry), [vendor.membershipExpiry]
+    );
+    
+    const showPromotionalContent = useMemo(() => 
+        hasActiveMembership && (vendor.promotionalVideoUrl || vendor.promotionalImage), 
+        [hasActiveMembership, vendor.promotionalVideoUrl, vendor.promotionalImage]
+    );
+    
+    // If vendor has promotional content, show it; otherwise fall back to menu items
+    const heroItems = useMemo(() => {
+        if (showPromotionalContent) {
+            // Return vendor promotional content as primary display
+            return [{
+                id: `promo-${vendor.id}`,
+                name: vendor.name,
+                description: vendor.tagline || vendor.description || '',
+                image: vendor.promotionalImage || vendor.headerImage,
+                videoUrl: vendor.promotionalVideoUrl,
+                isPromo: true
+            }];
+        }
+        // Fallback to menu items with videos/images
+        return menuItems.filter(item => item.videoUrl || item.image).slice(0, 5);
+    }, [showPromotionalContent, vendor, menuItems]);
+    
     const [activeItemIndex, setActiveItemIndex] = useState(0);
     const intervalRef = useRef<number | null>(null);
     const videoRef = useRef<HTMLVideoElement>(null);
@@ -55,9 +83,9 @@ const VendorFeedItem: React.FC<VendorFeedItemProps> = ({ vendor, onOpenMenu, isM
     
     useEffect(() => {
         // This effect manages the auto-play interval for hero items.
-        // It restarts the timer whenever the activeItemIndex changes.
-        // STOP the slideshow if the menu is open.
-        if (heroItems.length <= 1 || isMenuOpen) {
+        // Only rotate if we have multiple menu items (not for single promotional content)
+        // STOP the slideshow if the menu is open or if showing promotional content
+        if (heroItems.length <= 1 || isMenuOpen || showPromotionalContent) {
             if (intervalRef.current) clearInterval(intervalRef.current);
             return;
         }
@@ -71,7 +99,7 @@ const VendorFeedItem: React.FC<VendorFeedItemProps> = ({ vendor, onOpenMenu, isM
         return () => {
             if (intervalRef.current) clearInterval(intervalRef.current);
         };
-    }, [heroItems.length, activeItemIndex, isMenuOpen]);
+    }, [heroItems.length, activeItemIndex, isMenuOpen, showPromotionalContent]);
 
     useEffect(() => {
         // This effect handles selections from the external slide-out menu.
@@ -90,19 +118,20 @@ const VendorFeedItem: React.FC<VendorFeedItemProps> = ({ vendor, onOpenMenu, isM
     const activeItem = heroItems[activeItemIndex];
 
     // Effect to handle video play/pause based on menu state
+    // Videos loop continuously and don't pause unless menu opens
     useEffect(() => {
         if (videoRef.current) {
             if (isMenuOpen) {
                 videoRef.current.pause();
             } else {
-                // Only try to play if it was supposed to be playing
+                // Continuously loop the video
+                videoRef.current.loop = true;
                 videoRef.current.play().catch(e => {
-                    // Autoplay might be prevented by browser policies if user hasn't interacted
                     console.debug("Video play prevented:", e);
                 });
             }
         }
-    }, [isMenuOpen, activeItem]); // Dependency on activeItem ensures new videos also respect the state
+    }, [isMenuOpen, activeItem]);
 
 
     const mockItemRating = useMemo(() => {
@@ -144,9 +173,15 @@ const VendorFeedItem: React.FC<VendorFeedItemProps> = ({ vendor, onOpenMenu, isM
                         loop 
                         muted 
                         autoPlay 
-                        playsInline 
-                        onLoadedData={() => {
-                            // Ensure video doesn't autoplay if menu is already open when it loads
+                        playsInline
+                        preload="auto"
+                        onLoadedMetadata={(e) => {
+                            // Enforce 15-second max duration for promotional videos
+                            const video = e.currentTarget;
+                            if (activeItem.isPromo && video.duration > 15) {
+                                console.warn(`Promotional video exceeds 15 seconds (${video.duration}s)`);
+                            }
+                            // Ensure video doesn't autoplay if menu is already open
                             if (isMenuOpen && videoRef.current) {
                                 videoRef.current.pause();
                             }
@@ -311,9 +346,9 @@ const StreetFood: React.FC = () => {
         }
     }, [foodVendors]);
     
-    const handleActiveItemChange = (vendorId: string, item: MenuItem | null) => {
+    const handleActiveItemChange = useCallback((vendorId: string, item: MenuItem | null) => {
         setActiveItemsByVendor(prev => ({ ...prev, [vendorId]: item }));
-    };
+    }, []);
 
     const activeItemForCart = useMemo(() => {
         return currentVisibleVendorId ? activeItemsByVendor[currentVisibleVendorId] : null;

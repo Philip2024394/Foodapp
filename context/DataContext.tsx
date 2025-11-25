@@ -1,5 +1,5 @@
 import React, { createContext, useState, useCallback, ReactNode, useEffect, useMemo } from 'react';
-import { MenuItem, ShopItem, Vendor, Vehicle, Destination, Room, Review, VehicleBooking, FoodType, MassageType, VehicleImageSet, Booking, DriverTourOffering } from '../types';
+import { MenuItem, ShopItem, Vendor, Vehicle, Destination, Room, Review, VehicleBooking, FoodType, MassageType, VehicleImageSet, Booking, DriverTourOffering, FoodOrder } from '../types';
 import { supabase } from '../lib/supabaseClient';
 import { VENDORS_DATA, BALI_VENDORS_DATA } from '../mock-data/business';
 import { STREET_FOOD_ITEMS, SHOP_ITEMS, BALI_STREET_FOOD_ITEMS, BALI_SHOP_ITEMS } from '../mock-data/products';
@@ -9,6 +9,7 @@ import { ROOMS_DATA } from '../mock-data/lodging';
 import { REVIEWS_DATA } from '../mock-data/reviews';
 import { VEHICLE_BOOKINGS_DATA } from '../mock-data/bookings';
 import { DRIVER_TOUR_OFFERINGS_DATA } from '../mock-data/tours';
+import { MOCK_ORDERS } from '../mock-data/orders';
 import { useAuthContext } from '../hooks/useAuthContext';
 
 interface DataContextType {
@@ -34,6 +35,7 @@ interface DataContextType {
     car: VehicleImageSet | null;
     truck: VehicleImageSet | null;
   };
+  foodOrders: FoodOrder[];
 
   // Data management functions
   toggleItemAvailability: (itemId: string) => void;
@@ -47,6 +49,7 @@ interface DataContextType {
   unsaveBooking: (bookingId: string) => void;
   addFavoriteDriver: (driverId: string) => void;
   removeFavoriteDriver: (driverId: string) => void;
+  updateOrderStatus: (orderId: string, status: string, prepTime?: number) => void;
 }
 
 export const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -94,6 +97,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const [savedBookingIds, setSavedBookingIds] = useState<string[]>([]);
     const [foodTypes, setFoodTypes] = useState<FoodType[]>([]);
     const [massageTypes, setMassageTypes] = useState<MassageType[]>([]);
+    const [foodOrders, setFoodOrders] = useState<FoodOrder[]>(MOCK_ORDERS);
     const [vehicleImageSets, setVehicleImageSets] = useState<{
         bike: VehicleImageSet | null;
         car: VehicleImageSet | null;
@@ -513,12 +517,34 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setDestinations(prev => prev.filter(d => d.id !== destinationId));
     }, []);
 
+    const updateOrderStatus = useCallback((orderId: string, status: string, prepTime?: number) => {
+        setFoodOrders(prev => prev.map(order => {
+            if (order.id === orderId) {
+                const newHistory = [...order.statusHistory, {
+                    status,
+                    timestamp: new Date().toISOString(),
+                    note: prepTime ? `Prep time: ${prepTime} min` : undefined
+                }];
+                
+                return {
+                    ...order,
+                    status,
+                    statusHistory: newHistory,
+                    estimatedPrepTime: prepTime || order.estimatedPrepTime
+                };
+            }
+            return order;
+        }));
+    }, []);
+
     const value = {
         vendors, streetFoodItems, shopItems, vehicles, destinations, rooms, reviews, vehicleBookings, itemAvailability, isMockMode,
         driverTourOfferings, bookingHistory, favoriteDrivers, favoriteDriverIds, savedBookingIds, foodTypes, massageTypes, vehicleImageSets,
+        foodOrders,
         toggleItemAvailability, updateVehicleDetails, updateVendorDetails, updateMenuItemDetails,
         addDestination, updateDestination, deleteDestination,
         saveBooking, unsaveBooking, addFavoriteDriver, removeFavoriteDriver,
+        updateOrderStatus,
     };
 
     return <DataContext.Provider value={value}>{children}</DataContext.Provider>;

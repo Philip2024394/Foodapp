@@ -7,13 +7,13 @@ import { useAuthContext } from '../../hooks/useAuthContext';
 const ServiceTile: React.FC<{ title: string; icon: React.ReactNode; onClick: () => void; isGlowing: boolean; isLargeIcon?: boolean; textOnTop?: boolean; }> = ({ title, icon, onClick, isGlowing, isLargeIcon, textOnTop }) => (
     <div
         onClick={onClick}
-        className={`group aspect-square bg-white/5 rounded-2xl flex flex-col items-center justify-center p-4 text-white font-bold text-center backdrop-blur-xl border border-white/10 hover:bg-white/10 transition-all duration-300 cursor-pointer ${isGlowing ? 'glowing-tile' : ''}`}
+        className={`group aspect-square bg-white/5 rounded-xl flex flex-col items-center justify-center p-2 text-white font-bold text-center backdrop-blur-xl border border-white/10 hover:bg-white/10 transition-all duration-300 cursor-pointer ${isGlowing ? 'glowing-tile' : ''}`}
     >
-        {textOnTop && <span className="text-sm md:text-base">{title}</span>}
-        <div className={`${isLargeIcon ? 'w-3/4 h-3/4' : 'w-1/3 h-1/3'} ${textOnTop ? 'mt-2' : 'mb-2'} text-orange-500 transform transition-transform duration-300 group-hover:scale-110`}>
+        {textOnTop && <span className="text-xs md:text-sm">{title}</span>}
+        <div className={`${isLargeIcon ? 'w-3/4 h-3/4' : 'w-1/3 h-1/3'} ${textOnTop ? 'mt-1' : 'mb-1'} text-orange-500 transform transition-transform duration-300 group-hover:scale-110`}>
             {icon}
         </div>
-        {!textOnTop && <span className="text-sm md:text-base">{title}</span>}
+        {!textOnTop && <span className="text-xs md:text-sm">{title}</span>}
     </div>
 );
 
@@ -82,22 +82,22 @@ const Home: React.FC = () => {
   }, [services.length]);
 
   return (
-    <div className="relative h-full w-full flex flex-col items-center justify-center text-white p-4 overflow-hidden">
+    <div className="relative h-full w-full flex flex-col items-center justify-center text-white px-2 py-4 overflow-hidden">
       {/* Content */}
-      <div className="relative z-10 w-full max-w-4xl">
-           <div className="text-center mb-8">
-              <h1 className="text-5xl md:text-7xl font-bold">
+      <div className="relative z-10 w-full max-w-4xl flex flex-col items-center">
+           <div className="text-center mb-4">
+              <h1 className="text-4xl md:text-6xl font-bold">
                   Inda<span className="text-orange-500"><span className="animate-float-s">S</span>treet</span>
               </h1>
               <DisplayText
                 as="p"
-                className="mt-2 text-lg md:text-2xl text-stone-300"
+                className="mt-1 text-base md:text-xl text-stone-300"
                 editId="home-tagline"
                 defaultValue="At Your Finger Tips"
               />
-              <p className="mt-4 text-sm text-stone-400">Current Location: <span className="font-semibold text-stone-200 cursor-pointer hover:underline" onClick={openLocationModal}>{location}</span></p>
+              <p className="mt-2 text-xs text-stone-400">Current Location: <span className="font-semibold text-stone-200 cursor-pointer hover:underline" onClick={openLocationModal}>{location}</span></p>
           </div>
-          <div className="grid grid-cols-3 gap-3 md:gap-4">
+          <div className="grid grid-cols-3 gap-2 md:gap-3 w-full">
               {services.map((service, index) => (
                   <ServiceTile
                       key={service.title}

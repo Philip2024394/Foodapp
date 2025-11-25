@@ -5,6 +5,7 @@ import { useAuthContext } from '../../hooks/useAuthContext';
 import DrawerCartItem from './DrawerCartItem';
 import { CloseIcon, TrashIcon, LocationPinIcon } from '../common/Icon';
 import { formatIndonesianCurrency } from '../../utils/formatters';
+import { openWhatsAppChat, generateRestaurantOrderMessage } from '../../utils/whatsapp';
 
 interface CartDrawerProps {
   isOpen: boolean;
@@ -14,7 +15,7 @@ interface CartDrawerProps {
 const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
   const { cart, getCartTotal, clearCart, paymentMethod, setPaymentMethod } = useCartContext();
   const { vendors } = useDataContext();
-  const { location, confirmLocation } = useAuthContext();
+  const { location, confirmLocation, whatsappNumber } = useAuthContext();
 
   const [deliveryAddress, setDeliveryAddress] = useState('');
 
@@ -43,11 +44,49 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
   const total = finalSubtotal + deliveryFee;
 
   const handleCheckout = () => {
+    if (!whatsappNumber) {
+      alert('⚠️ Please add your WhatsApp number in Profile to place orders.');
+      onClose();
+      return;
+    }
+    
     if (deliveryAddress && deliveryAddress !== location) {
         confirmLocation(deliveryAddress);
     }
+    
+    // Group items by vendor and send WhatsApp notifications
+    const vendorGroups = new Map<string, typeof cart>();
+    cart.forEach(ci => {
+      const vendorId = ci.item.vendorId;
+      if (!vendorGroups.has(vendorId)) {
+        vendorGroups.set(vendorId, []);
+      }
+      vendorGroups.get(vendorId)!.push(ci);
+    });
+    
+    // Send WhatsApp to each vendor
+    vendorGroups.forEach((items, vendorId) => {
+      const vendor = vendors.find(v => v.id === vendorId);
+      if (vendor?.whatsapp) {
+        const itemsList = items.map(ci => `${ci.quantity}x ${ci.item.name}`).join(', ');
+        const vendorTotal = items.reduce((sum, ci) => sum + ci.item.price * ci.quantity, 0);
+        
+        const message = generateRestaurantOrderMessage(
+          whatsappNumber || 'Customer',
+          itemsList,
+          formatIndonesianCurrency(vendorTotal),
+          deliveryAddress || location || 'Address not provided'
+        );
+        
+        setTimeout(() => {
+          openWhatsAppChat(vendor.whatsapp!, message);
+        }, 500);
+      }
+    });
+    
     onClose();
-    console.log('Delivery booking not yet implemented');
+    clearCart();
+    alert('✅ Order confirmed! Restaurants notified via WhatsApp.');
   };
 
   return (

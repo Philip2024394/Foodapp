@@ -69,7 +69,8 @@ const SlideOutMenu: React.FC<SlideOutMenuProps> = ({ isOpen, vendorItems, onItem
             style={{
                 top: 'calc(6.5rem + env(safe-area-inset-top))',
                 bottom: 'calc(6rem + env(safe-area-inset-bottom))',
-                width: '22rem',
+                width: '70%',
+                maxWidth: '20rem',
                 pointerEvents: isOpen ? 'auto' : 'none'
             }}
         >

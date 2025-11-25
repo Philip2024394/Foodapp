@@ -121,7 +121,7 @@ const App: React.FC = () => {
   ];
 
   return (
-    <div className="bg-black min-h-screen text-stone-300 flex flex-col">
+    <div className="bg-black h-screen w-screen text-stone-300 flex flex-col overflow-hidden fixed inset-0">
       {pagesWithAppBackground.includes(currentPage) && (
         <div className="fixed inset-0 z-0">
             <img
@@ -146,7 +146,7 @@ const App: React.FC = () => {
           isDrawerOpen={isDrawerOpen} 
         />
       )}
-      <main className={`flex-grow flex flex-col ${noPaddingPages.includes(currentPage) ? '' : 'p-4 md:p-8 max-w-7xl mx-auto w-full'} ${showFooter ? 'pb-20 md:pb-0' : ''}`}>
+      <main className={`flex-grow flex flex-col overflow-y-auto overflow-x-hidden ${noPaddingPages.includes(currentPage) ? '' : 'p-4 md:p-8 max-w-7xl mx-auto w-full'} ${showFooter ? 'pb-20 md:pb-0' : ''}`}>
         <ErrorBoundary>
           <Suspense fallback={<LoadingSpinner />}>
             <div key={currentPage} className={`animate-page-rise-in ${noPaddingPages.includes(currentPage) ? 'flex-grow relative' : ''}`}>

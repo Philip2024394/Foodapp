@@ -31,6 +31,24 @@ export enum BookingType {
   PURCHASE_DELIVERY = 'Purchase & Delivery',
 }
 
+export enum MembershipTier {
+  SILVER = 'silver',
+  GOLD = 'gold',
+  NONE = 'none',
+}
+
+export enum OrderStatus {
+  PENDING = 'pending',           // Just received, waiting for restaurant confirmation
+  ACCEPTED = 'accepted',         // Restaurant accepted the order
+  PREPARING = 'preparing',       // Restaurant is cooking
+  READY = 'ready',              // Food is ready for pickup
+  PICKED_UP = 'picked_up',      // Driver picked up the food
+  ON_THE_WAY = 'on_the_way',    // Driver is delivering
+  DELIVERED = 'delivered',       // Order completed
+  CANCELLED = 'cancelled',       // Order cancelled
+  REJECTED = 'rejected'          // Restaurant rejected
+}
+
 export enum BusinessCategory {
   ARTISAN = 'Artisan Goods',
   WELLNESS = 'Wellness & Spa',
@@ -38,6 +56,20 @@ export enum BusinessCategory {
   SERVICES = 'Professional Services',
   HEALTH = 'Health & Pharmacy',
   FNB = 'Food & Beverage',
+}
+
+export interface MembershipPackage {
+  tier: MembershipTier;
+  name: string;
+  price: number; // IDR
+  duration: number; // days
+  features: {
+    promotionalContent: 'image' | 'video';
+    maxVideoDuration?: number; // seconds
+    analytics: boolean;
+    priorityListing: boolean;
+  };
+  description: string;
 }
 
 export interface Discount {
@@ -159,6 +191,12 @@ export interface Vendor {
   loyaltyRewardEnabled?: boolean;
   likes?: number;
   isLive?: boolean;
+  // Promotional content and membership
+  promotionalVideoUrl?: string; // Gold tier only - max 15 seconds
+  promotionalImage?: string; // Silver tier or fallback
+  membershipTier?: MembershipTier;
+  membershipExpiry?: string; // ISO date string
+  membershipPurchaseDate?: string; // ISO date string
 }
 
 export interface RoomAmenities {
@@ -293,6 +331,38 @@ export interface CartItem {
   item: MenuItem | ShopItem;
   quantity: number;
   appliedVoucher?: Voucher;
+}
+
+export interface FoodOrder {
+  id: string;
+  vendorId: string;
+  vendorName: string;
+  customerName: string;
+  customerPhone: string;
+  customerWhatsApp?: string;
+  deliveryAddress: string;
+  items: CartItem[];
+  subtotal: number;
+  deliveryFee: number;
+  total: number;
+  paymentMethod: 'cash' | 'transfer';
+  status: OrderStatus;
+  statusHistory: {
+    status: OrderStatus;
+    timestamp: string;
+    note?: string;
+  }[];
+  orderTime: string;
+  estimatedPrepTime?: number; // in minutes
+  estimatedDeliveryTime?: string;
+  driverInfo?: {
+    driverId: string;
+    driverName: string;
+    driverPhone: string;
+    vehicleType: string;
+  };
+  paymentProof?: string; // URL to uploaded image
+  notes?: string;
 }
 
 export interface Booking {

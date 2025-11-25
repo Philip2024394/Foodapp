@@ -1,6 +1,6 @@
 
 
-import { Vendor, BusinessCategory } from '../types';
+import { Vendor, BusinessCategory, MembershipTier } from '../types';
 
 export const VENDORS_DATA: Vendor[] = [
     // Food Vendors
@@ -8,7 +8,11 @@ export const VENDORS_DATA: Vendor[] = [
         id: 'v1', name: 'Warung Bu Ani', type: 'food', address: 'Kuta', street: 'Jl. Legian', rating: 4.8, distance: 1.2, 
         headerImage: 'https://picsum.photos/seed/v1_header/800/200', image: 'https://picsum.photos/seed/v1/200/200', 
         bankDetails: { bankName: 'BCA', accountNumber: '111222333', accountHolder: 'Ani Lestari' }, 
-        bio: "Authentic Javanese home cooking since 2005.", cuisine: "Javanese", likes: 23400, isLive: true, 
+        bio: "Authentic Javanese home cooking since 2005.", cuisine: "Javanese", likes: 23400, isLive: true,
+        // Gold Membership with promotional video (using working video URL)
+        membershipTier: MembershipTier.GOLD,
+        membershipExpiry: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days from now
+        promotionalVideoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4', // Sample video
         discounts: [
             { id: 'd1', dayOfWeek: new Date().getDay(), percentage: 15, startTime: '00:00', endTime: '23:59' }
         ],
@@ -19,7 +23,11 @@ export const VENDORS_DATA: Vendor[] = [
         ]
     },
     { 
-        id: 'v2', name: 'Sate Ayam Pak Budi', type: 'food', address: 'Seminyak', street: 'Jl. Kayu Aya', rating: 4.9, distance: 2.5, headerImage: 'https://picsum.photos/seed/v2_header/800/200', image: 'https://picsum.photos/seed/v2/200/200', bio: "The best charcoal-grilled satay in Seminyak!", cuisine: "Satay / Grilled", likes: 58100, isLive: true, 
+        id: 'v2', name: 'Sate Ayam Pak Budi', type: 'food', address: 'Seminyak', street: 'Jl. Kayu Aya', rating: 4.9, distance: 2.5, headerImage: 'https://picsum.photos/seed/v2_header/800/200', image: 'https://picsum.photos/seed/v2/200/200', bio: "The best charcoal-grilled satay in Seminyak!", cuisine: "Satay / Grilled", likes: 58100, isLive: true,
+        // Gold Membership with promotional video
+        membershipTier: MembershipTier.GOLD,
+        membershipExpiry: new Date(Date.now() + 25 * 24 * 60 * 60 * 1000).toISOString(), // 25 days from now
+        promotionalVideoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4', // Sample video
         discounts: [
             { id: 'd2', dayOfWeek: 1, percentage: 10, startTime: '16:00', endTime: '18:00' } // Monday 4-6 PM
         ],
@@ -28,7 +36,13 @@ export const VENDORS_DATA: Vendor[] = [
             { id: 'vch5', title: 'Satay Lovers', discountAmount: 5000, description: 'Discount on Chicken Satay portions.', validCategory: 'Food' }
         ]
     },
-    { id: 'v4', name: 'Gado-Gado Ibu Tini', type: 'food', address: 'Kuta', street: 'Jl. Legian', rating: 4.6, distance: 1.5, headerImage: 'https://picsum.photos/seed/v4_header/800/200', image: 'https://picsum.photos/seed/v4/200/200', bankDetails: { bankName: 'BRI', accountNumber: '999888777', accountHolder: 'Tini Rahayu' }, bio: "Fresh vegetables and the original peanut sauce recipe.", cuisine: "Vegetarian / Salad", likes: 8900, isLive: false },
+    { 
+        id: 'v4', name: 'Gado-Gado Ibu Tini', type: 'food', address: 'Kuta', street: 'Jl. Legian', rating: 4.6, distance: 1.5, headerImage: 'https://picsum.photos/seed/v4_header/800/200', image: 'https://picsum.photos/seed/v4/200/200', bankDetails: { bankName: 'BRI', accountNumber: '999888777', accountHolder: 'Tini Rahayu' }, bio: "Fresh vegetables and the original peanut sauce recipe.", cuisine: "Vegetarian / Salad", likes: 8900, isLive: false,
+        // Silver Membership with promotional image
+        membershipTier: MembershipTier.SILVER,
+        membershipExpiry: new Date(Date.now() + 20 * 24 * 60 * 60 * 1000).toISOString(), // 20 days from now
+        promotionalImage: 'https://images.pexels.com/photos/1640777/pexels-photo-1640777.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750', // Fresh salad
+    },
 
     // Shop Vendors
     { id: 'v3', name: 'Toko Kelontong Jaya', type: 'shop', address: 'Denpasar', street: 'Jl. Gajah Mada', rating: 4.5, distance: 3.1, headerImage: 'https://picsum.photos/seed/v3_header/800/200', image: 'https://picsum.photos/seed/v3/200/200', bankDetails: { bankName: 'Mandiri', accountNumber: '444555666', accountHolder: 'Jaya Perkasa' } },
@@ -64,8 +78,20 @@ export const VENDORS_DATA: Vendor[] = [
 
 // New Bali-specific mock data for design purposes
 export const BALI_VENDORS_DATA: Vendor[] = [
-    { id: 'v5', name: 'Babi Guling Pak Malen', type: 'food', address: 'Ubud', street: 'Jl. Raya Ubud', rating: 4.9, distance: 10.2, headerImage: 'https://picsum.photos/seed/v5_header/800/200', image: 'https://picsum.photos/seed/v5/200/200', bankDetails: { bankName: 'BCA', accountNumber: '555111222', accountHolder: 'Pak Malen' }, bio: "Legendary Balinese suckling pig.", cuisine: "Balinese", likes: 125000, isLive: false },
-    { id: 'v6', name: 'Nook Cafe', type: 'food', address: 'Seminyak', street: 'Jl. Umalas', rating: 4.7, distance: 3.5, headerImage: 'https://picsum.photos/seed/v6_header/800/200', image: 'https://picsum.photos/seed/v6/200/200', bio: "Escape to our lush paddy field view.", cuisine: "Western / Indonesian Fusion", likes: 98600, isLive: false },
+    { 
+        id: 'v5', name: 'Babi Guling Pak Malen', type: 'food', address: 'Ubud', street: 'Jl. Raya Ubud', rating: 4.9, distance: 10.2, headerImage: 'https://picsum.photos/seed/v5_header/800/200', image: 'https://picsum.photos/seed/v5/200/200', bankDetails: { bankName: 'BCA', accountNumber: '555111222', accountHolder: 'Pak Malen' }, bio: "Legendary Balinese suckling pig.", cuisine: "Balinese", likes: 125000, isLive: false,
+        // Gold Membership with promotional video
+        membershipTier: MembershipTier.GOLD,
+        membershipExpiry: new Date(Date.now() + 28 * 24 * 60 * 60 * 1000).toISOString(),
+        promotionalVideoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4', // Sample video
+    },
+    { 
+        id: 'v6', name: 'Nook Cafe', type: 'food', address: 'Seminyak', street: 'Jl. Umalas', rating: 4.7, distance: 3.5, headerImage: 'https://picsum.photos/seed/v6_header/800/200', image: 'https://picsum.photos/seed/v6/200/200', bio: "Escape to our lush paddy field view.", cuisine: "Western / Indonesian Fusion", likes: 98600, isLive: false,
+        // Silver Membership with promotional image
+        membershipTier: MembershipTier.SILVER,
+        membershipExpiry: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString(),
+        promotionalImage: 'https://picsum.photos/seed/v6_promo/800/600', // Promotional image
+    },
     { id: 'v7', name: 'Uluwatu Surf Shack', type: 'shop', address: 'Uluwatu', street: 'Jl. Labuansait', rating: 4.8, distance: 22.1, headerImage: 'https://picsum.photos/seed/v7_header/800/200', image: 'https://picsum.photos/seed/v7/200/200' },
     
     // Consolidated Rental Vendor

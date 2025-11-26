@@ -10,7 +10,7 @@ interface CartContextType {
   paymentMethod: PaymentMethod;
   setPaymentMethod: (method: PaymentMethod) => void;
   removeFromCart: (itemId: string) => void;
-  updateCartQuantity: (item: MenuItem | ShopItem, quantity: number, voucher?: Voucher) => void;
+  updateCartQuantity: (item: MenuItem | ShopItem, quantity: number, specialInstructions?: string, voucher?: Voucher) => void;
   clearCart: () => void;
   getCartTotal: () => number;
   activateGuestReward: () => void;
@@ -59,7 +59,7 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setCart((prevCart) => prevCart.filter((cartItem) => cartItem.item.id !== itemId));
   }, []);
 
-  const updateCartQuantity = useCallback((item: MenuItem | ShopItem, quantity: number, voucher?: Voucher) => {
+  const updateCartQuantity = useCallback((item: MenuItem | ShopItem, quantity: number, specialInstructions?: string, voucher?: Voucher) => {
     if (quantity <= 0) {
       removeFromCart(item.id);
       return;
@@ -68,10 +68,15 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const existingItem = prevCart.find((cartItem) => cartItem.item.id === item.id);
       if (existingItem) {
         return prevCart.map((cartItem) =>
-          cartItem.item.id === item.id ? { ...cartItem, quantity, appliedVoucher: voucher || cartItem.appliedVoucher } : cartItem
+          cartItem.item.id === item.id ? { 
+            ...cartItem, 
+            quantity, 
+            specialInstructions: specialInstructions !== undefined ? specialInstructions : cartItem.specialInstructions,
+            appliedVoucher: voucher || cartItem.appliedVoucher 
+          } : cartItem
         );
       }
-      return [...prevCart, { item, quantity, appliedVoucher: voucher }];
+      return [...prevCart, { item, quantity, specialInstructions, appliedVoucher: voucher }];
     });
   }, [removeFromCart]);
 

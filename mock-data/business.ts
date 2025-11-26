@@ -1,6 +1,6 @@
 
 
-import { Vendor, BusinessCategory, MembershipTier } from '../types';
+import { Vendor, BusinessCategory, MembershipTier, RestaurantEventType } from '../types';
 
 export const VENDORS_DATA: Vendor[] = [
     // Food Vendors
@@ -9,6 +9,26 @@ export const VENDORS_DATA: Vendor[] = [
         headerImage: 'https://picsum.photos/seed/v1_header/800/200', image: 'https://picsum.photos/seed/v1/200/200', 
         bankDetails: { bankName: 'BCA', accountNumber: '111222333', accountHolder: 'Ani Lestari' }, 
         bio: "Authentic Javanese home cooking since 2005.", cuisine: "Javanese", likes: 23400, isLive: true,
+        youtubeStreamId: 'jfKfPfyJRdk', // MOCK: Lofi cooking stream for demo
+        dineInPromotion: {
+            isActive: true,
+            percentage: 15,
+            menuDiscount: 10,
+            code: 'DINE15',
+            displayDuration: 'always',
+            totalRedemptions: 47,
+            lastRedemption: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString() // 2 hours ago
+        },
+        currentEvent: {
+            id: 'event1',
+            type: RestaurantEventType.LIVE_MUSIC,
+            name: 'Friday Night Live Jazz',
+            description: 'Join us for an evening of smooth jazz with local musicians. Enjoy our special cocktail menu and authentic Indonesian cuisine while soaking in the atmosphere.',
+            image: 'https://images.pexels.com/photos/1763075/pexels-photo-1763075.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750',
+            startTime: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(), // Started 1 hour ago
+            endTime: new Date(Date.now() + 3 * 60 * 60 * 1000).toISOString(), // Ends in 3 hours
+            isActive: true
+        },
         // Gold Membership with promotional video (using working video URL)
         membershipTier: MembershipTier.GOLD,
         membershipExpiry: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days from now
@@ -24,6 +44,17 @@ export const VENDORS_DATA: Vendor[] = [
     },
     { 
         id: 'v2', name: 'Sate Ayam Pak Budi', type: 'food', address: 'Seminyak', street: 'Jl. Kayu Aya', rating: 4.9, distance: 2.5, headerImage: 'https://picsum.photos/seed/v2_header/800/200', image: 'https://picsum.photos/seed/v2/200/200', bio: "The best charcoal-grilled satay in Seminyak!", cuisine: "Satay / Grilled", likes: 58100, isLive: true,
+        youtubeStreamId: 'jfKfPfyJRdk', // MOCK: Same demo stream
+        dineInPromotion: {
+            isActive: true,
+            percentage: 20,
+            menuDiscount: 5,
+            code: 'SATAY20',
+            displayDuration: '8h',
+            startTime: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(), // Started 3 hours ago
+            totalRedemptions: 23,
+            lastRedemption: new Date(Date.now() - 30 * 60 * 1000).toISOString() // 30 minutes ago
+        },
         // Gold Membership with promotional video
         membershipTier: MembershipTier.GOLD,
         membershipExpiry: new Date(Date.now() + 25 * 24 * 60 * 60 * 1000).toISOString(), // 25 days from now
@@ -38,6 +69,15 @@ export const VENDORS_DATA: Vendor[] = [
     },
     { 
         id: 'v4', name: 'Gado-Gado Ibu Tini', type: 'food', address: 'Kuta', street: 'Jl. Legian', rating: 4.6, distance: 1.5, headerImage: 'https://picsum.photos/seed/v4_header/800/200', image: 'https://picsum.photos/seed/v4/200/200', bankDetails: { bankName: 'BRI', accountNumber: '999888777', accountHolder: 'Tini Rahayu' }, bio: "Fresh vegetables and the original peanut sauce recipe.", cuisine: "Vegetarian / Salad", likes: 8900, isLive: false,
+        dineInPromotion: {
+            isActive: true,
+            percentage: 10,
+            code: 'VEGGIE10',
+            displayDuration: '4h',
+            startTime: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(), // Started 1 hour ago
+            totalRedemptions: 12,
+            lastRedemption: new Date(Date.now() - 15 * 60 * 1000).toISOString() // 15 minutes ago
+        },
         // Silver Membership with promotional image
         membershipTier: MembershipTier.SILVER,
         membershipExpiry: new Date(Date.now() + 20 * 24 * 60 * 60 * 1000).toISOString(), // 20 days from now

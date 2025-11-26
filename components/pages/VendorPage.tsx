@@ -87,7 +87,106 @@ const FlipProfileCard: FC<FlipProfileCardProps> = ({ vendor, galleryImages, onIm
     const [countdown, setCountdown] = useState<string | null>(null);
     const [isUrgent, setIsUrgent] = useState(false);
     const [selectedVoucher, setSelectedVoucher] = useState<Voucher | null>(null);
+    const [showDineInCode, setShowDineInCode] = useState(false);
+    const [promoTimeRemaining, setPromoTimeRemaining] = useState<string | null>(null);
+    const [eventTimeRemaining, setEventTimeRemaining] = useState<string | null>(null);
     const { navigateToLiveStream } = useNavigationContext();
+
+    // Check if event is currently active
+    const isEventActive = useMemo(() => {
+        if (!vendor.currentEvent?.isActive) return false;
+        
+        const now = new Date();
+        const startTime = new Date(vendor.currentEvent.startTime);
+        const endTime = new Date(vendor.currentEvent.endTime);
+        
+        return now >= startTime && now <= endTime;
+    }, [vendor.currentEvent]);
+
+    // Update countdown for active events
+    useEffect(() => {
+        if (!isEventActive || !vendor.currentEvent) {
+            setEventTimeRemaining(null);
+            return;
+        }
+
+        const updateEventCountdown = () => {
+            const now = new Date();
+            const endTime = new Date(vendor.currentEvent!.endTime);
+            const remaining = endTime.getTime() - now.getTime();
+
+            if (remaining <= 0) {
+                setEventTimeRemaining(null);
+                return;
+            }
+
+            const hours = Math.floor(remaining / (1000 * 60 * 60));
+            const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
+            
+            setEventTimeRemaining(`${hours}h ${minutes}m left`);
+        };
+
+        updateEventCountdown();
+        const interval = setInterval(updateEventCountdown, 60000);
+        return () => clearInterval(interval);
+    }, [isEventActive, vendor.currentEvent]);
+
+    // Check if dine-in promotion is currently active based on time settings
+    const isDineInPromoActive = useMemo(() => {
+        if (!vendor.dineInPromotion?.isActive) return false;
+        
+        const promo = vendor.dineInPromotion;
+        if (promo.displayDuration === 'always') return true;
+        
+        if (!promo.startTime) return false;
+        
+        const startTime = new Date(promo.startTime);
+        const now = new Date();
+        const elapsed = now.getTime() - startTime.getTime();
+        
+        const duration = promo.displayDuration === '4h' ? 4 * 60 * 60 * 1000 :
+                        promo.displayDuration === '8h' ? 8 * 60 * 60 * 1000 :
+                        12 * 60 * 60 * 1000;
+        
+        return elapsed < duration;
+    }, [vendor.dineInPromotion]);
+
+    // Update countdown for timed promotions
+    useEffect(() => {
+        if (!vendor.dineInPromotion?.isActive || vendor.dineInPromotion.displayDuration === 'always') {
+            setPromoTimeRemaining(null);
+            return;
+        }
+
+        const updatePromoCountdown = () => {
+            const promo = vendor.dineInPromotion!;
+            if (!promo.startTime) return;
+
+            const startTime = new Date(promo.startTime);
+            const now = new Date();
+            const elapsed = now.getTime() - startTime.getTime();
+            
+            const duration = promo.displayDuration === '4h' ? 4 * 60 * 60 * 1000 :
+                            promo.displayDuration === '8h' ? 8 * 60 * 60 * 1000 :
+                            12 * 60 * 60 * 1000;
+            
+            const remaining = duration - elapsed;
+
+            if (remaining <= 0) {
+                setPromoTimeRemaining(null);
+                return;
+            }
+
+            const hours = Math.floor(remaining / (1000 * 60 * 60));
+            const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
+            
+            setPromoTimeRemaining(`${hours}h ${minutes}m left`);
+        };
+
+        updatePromoCountdown();
+        const interval = setInterval(updatePromoCountdown, 60000); // Update every minute
+        return () => clearInterval(interval);
+    }, [vendor.dineInPromotion]);
 
     useEffect(() => {
         if (!vendor.openingHours) return;
@@ -174,14 +273,110 @@ const FlipProfileCard: FC<FlipProfileCardProps> = ({ vendor, galleryImages, onIm
 
                     {/* Bottom Info */}
                     <div className="absolute bottom-0 left-0 right-0 p-6 text-left z-20">
-                        {/* Discount Overlay - DIRECTLY ABOVE NAME */}
-                        {displayDiscount && (
-                            <div className="mb-2 animate-fade-in-scale origin-bottom-left flex items-center space-x-2">
-                                <div className="bg-gradient-to-r from-red-600 to-red-500 text-white px-4 py-1.5 rounded-full shadow-lg border border-red-400/50 flex items-center gap-2 transform hover:scale-105 transition-transform cursor-default">
-                                    <div className="bg-white text-red-600 rounded-full p-0.5">
-                                        <GiftIcon className="h-3 w-3" />
+                        {/* Live Event Badge */}
+                        {isEventActive && vendor.currentEvent && (
+                            <div className="mb-3 animate-fade-in-scale origin-bottom-left">
+                                <div className="relative bg-gradient-to-r from-green-600 to-green-500 rounded-2xl shadow-2xl border-2 border-green-400/50 cursor-pointer transform hover:scale-105 transition-all hover:shadow-green-500/50 overflow-hidden">
+                                    {/* Event Image Background */}
+                                    <img 
+                                        src={vendor.currentEvent.image} 
+                                        alt={vendor.currentEvent.name}
+                                        className="w-full h-32 object-cover"
+                                    />
+                                    
+                                    {/* Gradient Overlay */}
+                                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent"></div>
+                                    
+                                    {/* Content Overlay */}
+                                    <div className="absolute inset-0 p-4 flex flex-col justify-between">
+                                        {/* Top: LIVE Badge */}
+                                        <div className="flex items-center gap-2">
+                                            <div className="relative">
+                                                <div className="w-3 h-3 bg-white rounded-full animate-pulse"></div>
+                                                <div className="absolute inset-0 bg-white rounded-full animate-ping"></div>
+                                            </div>
+                                            <div className="text-white font-black text-xl uppercase tracking-widest drop-shadow-[0_0_10px_rgba(255,255,255,0.8)] animate-pulse">
+                                                LIVE
+                                            </div>
+                                            {eventTimeRemaining && (
+                                                <div className="ml-auto bg-black/60 backdrop-blur-sm px-2 py-1 rounded-full text-xs font-bold text-white flex items-center gap-1 border border-white/30">
+                                                    <ClockIcon className="h-3 w-3" />
+                                                    {eventTimeRemaining}
+                                                </div>
+                                            )}
+                                        </div>
+                                        
+                                        {/* Bottom: Event Info */}
+                                        <div>
+                                            <div className="font-bold text-base text-white uppercase tracking-wide drop-shadow-lg">
+                                                🎉 {vendor.currentEvent.type}
+                                            </div>
+                                            <div className="text-sm text-white/90 font-semibold drop-shadow-md">
+                                                {vendor.currentEvent.name}
+                                            </div>
+                                            <div className="text-xs text-white/80 mt-1 drop-shadow">
+                                                Tap profile button to view details
+                                            </div>
+                                            </div>
+                                        </div>
                                     </div>
-                                    <span className="font-bold text-sm uppercase tracking-wider">Visit Us & Get {displayDiscount.percentage}% Discount</span>
+                                </div>
+                            </div>
+                        )}
+                        
+                        {/* Dine-In Promotion - DIRECTLY ABOVE NAME */}
+                        {isDineInPromoActive && vendor.dineInPromotion && (
+                            <div className="mb-3 animate-fade-in-scale origin-bottom-left">
+                                <div 
+                                    onClick={() => setShowDineInCode(!showDineInCode)}
+                                    className="bg-gradient-to-r from-orange-600 to-orange-500 text-white px-5 py-3 rounded-2xl shadow-2xl border-2 border-orange-400/50 cursor-pointer transform hover:scale-105 transition-all hover:shadow-orange-500/50"
+                                >
+                                    <div className="flex items-center justify-between gap-3">
+                                        <div className="flex items-center gap-2 flex-1">
+                                            <div className="bg-white text-orange-600 rounded-full p-1 animate-pulse">
+                                                <GiftIcon className="h-4 w-4" />
+                                            </div>
+                                            <div className="flex-1">
+                                                <div className="flex items-center gap-2 flex-wrap">
+                                                    <div className="font-bold text-base uppercase tracking-wider">
+                                                        Visit Us & Get {vendor.dineInPromotion.percentage}% Off Dine-In!
+                                                    </div>
+                                                    {vendor.dineInPromotion.menuDiscount && (
+                                                        <div className="bg-yellow-400 text-orange-900 px-2 py-0.5 rounded-full text-xs font-black uppercase border border-yellow-300">
+                                                            +{vendor.dineInPromotion.menuDiscount}% Menu Discount
+                                                        </div>
+                                                    )}
+                                                    {promoTimeRemaining && (
+                                                        <div className="bg-white/30 backdrop-blur-sm px-2 py-0.5 rounded-full text-xs font-bold flex items-center gap-1 animate-pulse border border-white/20">
+                                                            <ClockIcon className="h-3 w-3" />
+                                                            {promoTimeRemaining}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <div className="text-xs text-orange-100 mt-0.5">
+                                                    {showDineInCode ? 'Hide code' : 'Tap to reveal code'} • Must present at restaurant
+                                                    {vendor.dineInPromotion.menuDiscount && ' • Applies to all menu items'}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    {showDineInCode && (
+                                        <div className="mt-3 bg-white/20 backdrop-blur-sm rounded-xl p-3 border-2 border-white/30 border-dashed animate-fade-in-scale">
+                                            <div className="text-center">
+                                                <div className="text-xs text-orange-100 mb-1">DINE-IN CODE</div>
+                                                <div className="text-3xl font-black tracking-widest font-mono bg-white text-orange-600 rounded-lg py-2 px-4 inline-block shadow-lg">
+                                                    {vendor.dineInPromotion.code}
+                                                </div>
+                                                <div className="text-xs text-orange-100 mt-2">Present this code to staff when ordering</div>
+                                                {vendor.dineInPromotion.totalRedemptions !== undefined && (
+                                                    <div className="text-xs text-orange-200 mt-1">
+                                                        ✓ Used {vendor.dineInPromotion.totalRedemptions} times
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         )}

@@ -7,6 +7,8 @@ import { HeartIcon, ShareIcon, FoodMenuIcon, StarIcon, LocationPinIcon, SearchIc
 import { formatIndonesianCurrency, formatCount } from '../../utils/formatters';
 import CartDrawer from '../cart/CartDrawer';
 import SlideOutMenu from '../common/SlideOutMenu';
+import LiveStreamViewer from '../common/LiveStreamViewer';
+import { ItemDetailModal } from '../common/ItemDetailModal';
 import { isMembershipActive } from '../../constants';
 
 // Helper to shuffle array
@@ -29,10 +31,11 @@ interface VendorFeedItemProps {
     selectedMenuItemId: string | null;
     onMenuItemHandled: () => void;
     onActiveItemChange: (vendorId: string, item: MenuItem | null) => void;
+    onOpenLiveStream: (vendor: Vendor) => void;
 }
-const VendorFeedItem: React.FC<VendorFeedItemProps> = ({ vendor, onOpenMenu, isMenuOpen, onCloseMenu, onMenuItemSelect, selectedMenuItemId, onMenuItemHandled, onActiveItemChange }) => {
+const VendorFeedItem: React.FC<VendorFeedItemProps> = ({ vendor, onOpenMenu, isMenuOpen, onCloseMenu, onMenuItemSelect, selectedMenuItemId, onMenuItemHandled, onActiveItemChange, onOpenLiveStream }) => {
     const { streetFoodItems } = useDataContext();
-    const { selectVendor, navigateToLiveStream } = useNavigationContext();
+    const { selectVendor } = useNavigationContext();
     const menuItems = useMemo(() => 
         streetFoodItems.filter(item => item.vendorId === vendor.id && item.isAvailable)
     , [vendor.id, streetFoodItems]);
@@ -61,12 +64,15 @@ const VendorFeedItem: React.FC<VendorFeedItemProps> = ({ vendor, onOpenMenu, isM
             }];
         }
         // Fallback to menu items with videos/images
-        return menuItems.filter(item => item.videoUrl || item.image).slice(0, 5);
+        return menuItems.filter(item => item.videoUrl || item.image);
     }, [showPromotionalContent, vendor, menuItems]);
     
-    const [activeItemIndex, setActiveItemIndex] = useState(0);
-    const intervalRef = useRef<number | null>(null);
+    const [activeItemIndex, setActiveItemIndex] = useState(() => {
+        // Start with random item on mount
+        return heroItems.length > 0 ? Math.floor(Math.random() * heroItems.length) : 0;
+    });
     const videoRef = useRef<HTMLVideoElement>(null);
+    const containerRef = useRef<HTMLDivElement>(null);
 
     const deliveryPrice = useMemo(() => {
         const BIKE_RATE_PER_KM_PARCEL = 3500; // Representative rate based on mock data
@@ -82,24 +88,33 @@ const VendorFeedItem: React.FC<VendorFeedItemProps> = ({ vendor, onOpenMenu, isM
     }, [vendor.distance]);
     
     useEffect(() => {
-        // This effect manages the auto-play interval for hero items.
-        // Only rotate if we have multiple menu items (not for single promotional content)
-        // STOP the slideshow if the menu is open or if showing promotional content
-        if (heroItems.length <= 1 || isMenuOpen || showPromotionalContent) {
-            if (intervalRef.current) clearInterval(intervalRef.current);
-            return;
+        // Intersection Observer to detect when vendor comes into view (on swipe)
+        // When vendor becomes visible, randomly select a new menu item
+        const observer = new IntersectionObserver(
+            (entries) => {
+                entries.forEach((entry) => {
+                    if (entry.isIntersecting && heroItems.length > 1 && !showPromotionalContent) {
+                        // Randomly select a new item when this vendor comes into view
+                        const randomIndex = Math.floor(Math.random() * heroItems.length);
+                        setActiveItemIndex(randomIndex);
+                    }
+                });
+            },
+            {
+                threshold: 0.5, // Trigger when 50% of the vendor is visible
+            }
+        );
+
+        if (containerRef.current) {
+            observer.observe(containerRef.current);
         }
 
-        if (intervalRef.current) clearInterval(intervalRef.current);
-
-        intervalRef.current = window.setInterval(() => {
-            setActiveItemIndex(prev => (prev + 1) % heroItems.length);
-        }, 5000);
-
         return () => {
-            if (intervalRef.current) clearInterval(intervalRef.current);
+            if (containerRef.current) {
+                observer.unobserve(containerRef.current);
+            }
         };
-    }, [heroItems.length, activeItemIndex, isMenuOpen, showPromotionalContent]);
+    }, [heroItems.length, showPromotionalContent, heroItems]);
 
     useEffect(() => {
         // This effect handles selections from the external slide-out menu.
@@ -163,7 +178,7 @@ const VendorFeedItem: React.FC<VendorFeedItemProps> = ({ vendor, onOpenMenu, isM
     }
     
     return (
-        <div id={`vendor-${vendor.id}`} className="h-full w-full flex-shrink-0 snap-start relative bg-black overflow-hidden">
+        <div ref={containerRef} id={`vendor-${vendor.id}`} className="h-full w-full flex-shrink-0 snap-start relative bg-black overflow-hidden">
             <div className={`absolute inset-0 transition-all duration-700 ease-in-out transform ${isMenuOpen ? 'blur-xl brightness-50 scale-105' : 'scale-100'}`}>
                {activeItem.videoUrl ? (
                     <video 
@@ -242,10 +257,20 @@ const VendorFeedItem: React.FC<VendorFeedItemProps> = ({ vendor, onOpenMenu, isM
 
             {/* Side Action Bar */}
             <div className="absolute top-1/2 -translate-y-1/2 right-0 p-4 flex flex-col items-center space-y-5 z-10">
-                <button onClick={() => navigateToLiveStream(vendor)} className="relative flex flex-col items-center text-white" title={vendor.isLive ? "Watch Live Stream" : "Vendor is Offline"}>
-                    <img src={vendor.image} alt={vendor.name} className={`w-12 h-12 rounded-full border-2 ${vendor.isLive ? 'border-green-400' : 'border-orange-500'} object-cover`} />
-                    {vendor.isLive ? (
-                        <div className="absolute inset-0 satellite-ping rounded-full"></div>
+                <button 
+                    onClick={() => {
+                        if (vendor.currentEvent?.isActive) {
+                            onOpenLiveStream(vendor);
+                        } else {
+                            alert('No event is currently happening. Check back later!');
+                        }
+                    }} 
+                    className="relative flex flex-col items-center text-white" 
+                    title={vendor.currentEvent?.isActive ? `Event: ${vendor.currentEvent.name}` : "No Active Event"}
+                >
+                    <img src={vendor.image} alt={vendor.name} className={`w-12 h-12 rounded-full border-2 ${vendor.currentEvent?.isActive ? 'border-green-400 shadow-lg shadow-green-400/50' : 'border-orange-500'} object-cover`} />
+                    {vendor.currentEvent?.isActive ? (
+                        <div className="absolute inset-0 satellite-ping rounded-full bg-green-400"></div>
                     ) : (
                         <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-orange-500 rounded-full ring-2 ring-black"></div>
                     )}
@@ -288,7 +313,10 @@ const StreetFood: React.FC = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [inputValue, setInputValue] = useState('');
     const [selectedMenuItemId, setSelectedMenuItemId] = useState<string | null>(null);
+    const [selectedMenuItem, setSelectedMenuItem] = useState<MenuItem | null>(null);
+    const [selectedMenuVendor, setSelectedMenuVendor] = useState<Vendor | null>(null);
     const [showCartFlash, setShowCartFlash] = useState(false);
+    const [liveStreamVendor, setLiveStreamVendor] = useState<Vendor | null>(null);
     const notificationTimeoutRef = useRef<number | null>(null);
     const [isCartDrawerOpen, setIsCartDrawerOpen] = useState(false);
 
@@ -377,8 +405,29 @@ const StreetFood: React.FC = () => {
     };
     
     const handleMenuItemSelect = (item: MenuItem) => {
-        setSelectedMenuItemId(item.id);
+        setSelectedMenuItem(item);
+        // Find the vendor for this item
+        const itemVendor = foodVendors.find(v => v.id === item.vendorId);
+        setSelectedMenuVendor(itemVendor || null);
         setActiveMenuVendorId(null); // Close the menu
+    };
+    
+    const handleAddToCartFromModal = (item: MenuItem, specialInstructions?: string) => {
+        const itemInCart = cart.find(ci => ci.item.id === item.id);
+        const currentQuantity = itemInCart ? itemInCart.quantity : 0;
+        updateCartQuantity(item, currentQuantity + 1, specialInstructions);
+        
+        // Show flash notification
+        setShowCartFlash(true);
+        if (notificationTimeoutRef.current) {
+            clearTimeout(notificationTimeoutRef.current);
+        }
+        notificationTimeoutRef.current = window.setTimeout(() => {
+            setShowCartFlash(false);
+        }, 2000);
+        
+        // Close modal after adding
+        setSelectedMenuItem(null);
     };
 
     return (
@@ -395,6 +444,7 @@ const StreetFood: React.FC = () => {
                         selectedMenuItemId={selectedMenuItemId}
                         onMenuItemHandled={() => setSelectedMenuItemId(null)}
                         onActiveItemChange={handleActiveItemChange}
+                        onOpenLiveStream={setLiveStreamVendor}
                     />
                 ))}
             </div>
@@ -468,6 +518,32 @@ const StreetFood: React.FC = () => {
                     </div>
                 </form>
             </div>
+            
+            {/* Event Viewer - Full Screen */}
+            {liveStreamVendor && liveStreamVendor.currentEvent && (
+                <LiveStreamViewer
+                    event={liveStreamVendor.currentEvent}
+                    vendorName={liveStreamVendor.name}
+                    onClose={() => setLiveStreamVendor(null)}
+                />
+            )}
+            
+            {/* Item Detail Modal - Full Screen with Image Gallery */}
+            <ItemDetailModal
+                item={selectedMenuItem}
+                vendor={selectedMenuVendor}
+                onClose={() => {
+                    setSelectedMenuItem(null);
+                    setSelectedMenuVendor(null);
+                }}
+                onAddToCart={handleAddToCartFromModal}
+                cartQuantity={selectedMenuItem ? (cart.find(ci => ci.item.id === selectedMenuItem.id)?.quantity || 0) : 0}
+                totalCartItems={totalItems}
+                cartTotal={cartTotal}
+                showCartFlash={showCartFlash}
+                onOpenCart={() => setIsCartDrawerOpen(true)}
+                existingInstructions={selectedMenuItem ? (cart.find(ci => ci.item.id === selectedMenuItem.id)?.specialInstructions || '') : ''}
+            />
         </div>
     );
 };

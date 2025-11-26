@@ -90,6 +90,39 @@ export interface Voucher {
   image?: string;
 }
 
+export interface DineInPromotion {
+  isActive: boolean;
+  percentage: number; // 5, 10, 15, 20, or 25
+  code: string; // Unique code customer must present (e.g., "DINE15")
+  displayDuration: 'always' | '4h' | '8h' | '12h';
+  startTime?: string; // ISO timestamp when promotion started (for timed promotions)
+  totalRedemptions?: number; // Track how many times code was used
+  lastRedemption?: string; // ISO timestamp of last use
+  menuDiscount?: number; // Optional additional menu discount (5, 10, or 15%)
+}
+
+export enum RestaurantEventType {
+  LIVE_MUSIC = 'Live Music',
+  KARAOKE = 'Karaoke',
+  SPORTS = 'Sports Viewing',
+  HAPPY_HOUR = 'Happy Hour',
+  COMEDY_NIGHT = 'Comedy Night',
+  TRIVIA_NIGHT = 'Trivia Night',
+  SPECIAL_MENU = 'Special Menu',
+  OTHER = 'Other Event'
+}
+
+export interface RestaurantEvent {
+  id: string;
+  type: RestaurantEventType;
+  name: string;
+  description: string;
+  image: string; // Full-page event image
+  startTime: string; // ISO timestamp
+  endTime: string; // ISO timestamp
+  isActive: boolean; // Manually activated by restaurant owner
+}
+
 export interface HotelVillaAmenities {
   guestRoom: {
     wifi?: boolean;
@@ -169,6 +202,8 @@ export interface Vendor {
   photos?: { url: string; name: string; }[];
   discounts?: Discount[];
   vouchers?: Voucher[];
+  dineInPromotion?: DineInPromotion; // Special dine-in promotion with code requirement
+  currentEvent?: RestaurantEvent; // Active event happening now
   bio?: string;
   cuisine?: string;
   vehicleIds?: string[];
@@ -191,6 +226,7 @@ export interface Vendor {
   loyaltyRewardEnabled?: boolean;
   likes?: number;
   isLive?: boolean;
+  youtubeStreamId?: string; // ONE-TIME SETUP: Permanent YouTube stream ID (e.g., "dQw4w9WgXcQ")
   // Promotional content and membership
   promotionalVideoUrl?: string; // Gold tier only - max 15 seconds
   promotionalImage?: string; // Silver tier or fallback
@@ -255,7 +291,8 @@ export interface MenuItem {
   price: number;
   description: string;
   longDescription: string;
-  image: string;
+  image: string; // Primary/main image (always shown first)
+  images?: string[]; // Gallery: up to 5 total images including main (horizontal swipe in modal)
   videoUrl?: string;
   vendorId: string;
   category: string;
@@ -331,6 +368,7 @@ export interface CartItem {
   item: MenuItem | ShopItem;
   quantity: number;
   appliedVoucher?: Voucher;
+  specialInstructions?: string; // Chef instructions (max 500 chars)
 }
 
 export interface FoodOrder {

@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { Vendor, MenuItem, Booking, BookingType, Discount, ShopItem, Voucher, MembershipTier } from '../../types';
+import { Vendor, MenuItem, Booking, BookingType, Discount, ShopItem, Voucher, MembershipTier, RestaurantEvent, RestaurantEventType } from '../../types';
 import { useDataContext } from '../../hooks/useDataContext';
 import { StarIcon, FoodIcon, EditIcon, TrashIcon, GiftIcon } from '../common/Icon';
 import Modal from '../common/Modal';
@@ -49,7 +49,7 @@ const INDONESIAN_BANKS = [
 // Mock logged-in vendor for demo purposes. In a real app, this would come from an auth context.
 const LOGGED_IN_VENDOR_ID = 'v1'; // Warung Bu Ani
 
-type DashboardPage = 'orders' | 'menu' | 'profile' | 'bank' | 'membership';
+type DashboardPage = 'orders' | 'menu' | 'profile' | 'bank' | 'membership' | 'events' | 'promotions';
 
 const StatCard: React.FC<{ title: string; value: string | number; icon: React.ReactNode }> = ({ title, value, icon }) => (
     <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-xl p-4 flex items-center space-x-4">
@@ -96,6 +96,7 @@ const RestaurantDashboard: React.FC = () => {
     const [itemEditFormData, setItemEditFormData] = useState<Partial<MenuItem>>({});
     const [newDiscount, setNewDiscount] = useState({ dayOfWeek: '1', percentage: '10', startTime: '16:00', endTime: '18:00' });
     const [newVoucher, setNewVoucher] = useState<Partial<Voucher>>({ title: '', discountAmount: 5000, validCategory: 'Food', description: '' });
+    const [eventFormData, setEventFormData] = useState<Partial<RestaurantEvent>>({type: RestaurantEventType.LIVE_MUSIC, name: '', description: '', image: '', startTime: '', endTime: '', isActive: false});
     const weekDays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
     const vendor = useMemo(() => vendors.find(v => v.id === LOGGED_IN_VENDOR_ID), [vendors]);
@@ -116,6 +117,13 @@ const RestaurantDashboard: React.FC = () => {
                 bankDetails: vendor.bankDetails || { bankName: '', accountHolder: '', accountNumber: '' },
                 discounts: vendor.discounts || [],
                 vouchers: vendor.vouchers || [],
+                dineInPromotion: vendor.dineInPromotion || {
+                    isActive: false,
+                    percentage: 10,
+                    code: '',
+                    displayDuration: 'always',
+                    totalRedemptions: 0
+                },
             });
             setBankFormData({
                 bankName: vendor.bankDetails?.bankName || '',
@@ -225,6 +233,33 @@ const RestaurantDashboard: React.FC = () => {
         setEditFormData(prev => ({ ...prev, vouchers: prev.vouchers?.filter(v => v.id !== idToRemove) }));
     };
 
+    const handleSaveEvent = () => {
+        if (!eventFormData.name || !eventFormData.image || !eventFormData.startTime || !eventFormData.endTime) {
+            alert('Please fill in all event details');
+            return;
+        }
+        const newEvent: RestaurantEvent = {
+            id: `event_${Date.now()}`,
+            type: eventFormData.type as RestaurantEventType,
+            name: eventFormData.name,
+            description: eventFormData.description || '',
+            image: eventFormData.image,
+            startTime: eventFormData.startTime,
+            endTime: eventFormData.endTime,
+            isActive: eventFormData.isActive || false
+        };
+        updateVendorDetails(vendor.id, { currentEvent: newEvent });
+        alert('✅ Event saved successfully!');
+    };
+
+    const handleToggleEvent = () => {
+        if (vendor.currentEvent) {
+            updateVendorDetails(vendor.id, {
+                currentEvent: { ...vendor.currentEvent, isActive: !vendor.currentEvent.isActive }
+            });
+        }
+    };
+
     const availableTags = ['Spicy', 'Crispy', 'Rice', 'Noodle', 'Salad'];
     
     const hasActiveMembership = isMembershipActive(vendor.membershipExpiry);
@@ -318,10 +353,11 @@ const RestaurantDashboard: React.FC = () => {
     const menuItems_nav = [
         { id: 'orders' as DashboardPage, icon: '📋', label: 'Orders', color: 'from-purple-500 to-pink-500' },
         { id: 'menu' as DashboardPage, icon: '🍜', label: 'Menu', color: 'from-orange-500 to-amber-500' },
+        { id: 'events' as DashboardPage, icon: '🎉', label: 'Events', color: 'from-green-500 to-emerald-500' },
+        { id: 'promotions' as DashboardPage, icon: '🎁', label: 'Promotions', color: 'from-red-500 to-pink-500' },
         { id: 'profile' as DashboardPage, icon: '📝', label: 'Profile', color: 'from-blue-500 to-cyan-500' },
-        { id: 'bank' as DashboardPage, icon: '🏦', label: 'Bank & Payment', color: 'from-green-500 to-emerald-500' },
-        { id: 'membership' as DashboardPage, icon: '⭐', label: 'Membership', color: 'from-yellow-500 to-orange-500' },
-        { id: 'discounts' as DashboardPage, icon: '🎁', label: 'Discounts', color: 'from-red-500 to-pink-500' }
+        { id: 'bank' as DashboardPage, icon: '🏦', label: 'Bank & Payment', color: 'from-teal-500 to-cyan-500' },
+        { id: 'membership' as DashboardPage, icon: '⭐', label: 'Membership', color: 'from-yellow-500 to-orange-500' }
     ];
 
     return (
@@ -538,6 +574,171 @@ const RestaurantDashboard: React.FC = () => {
                     </div>
                 )}
                 
+                {currentPage === 'events' && (
+                    <div className="space-y-6">
+                        <h2 className="text-3xl font-bold text-white mb-4">🎉 Restaurant Events</h2>
+                        
+                        {/* Current Active Event */}
+                        {vendor.currentEvent && (
+                            <div className="bg-gradient-to-r from-green-500/10 to-emerald-500/10 border-2 border-green-500/30 rounded-xl p-6">
+                                <div className="flex items-center justify-between mb-4">
+                                    <h3 className="text-xl font-bold text-white">Current Event</h3>
+                                    <div className="flex items-center gap-3">
+                                        <span className="text-sm text-stone-400">Event Status:</span>
+                                        <label className="flex items-center gap-2 cursor-pointer">
+                                            <input
+                                                type="checkbox"
+                                                checked={vendor.currentEvent.isActive}
+                                                onChange={handleToggleEvent}
+                                                className="w-5 h-5 text-green-600 bg-stone-900 border-stone-700 rounded focus:ring-green-500"
+                                            />
+                                            <span className={`text-sm font-bold ${vendor.currentEvent.isActive ? 'text-green-400' : 'text-stone-500'}`}>
+                                                {vendor.currentEvent.isActive ? '✓ Active (Green Glow)' : 'Inactive'}
+                                            </span>
+                                        </label>
+                                    </div>
+                                </div>
+                                
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div>
+                                        <img src={vendor.currentEvent.image} alt={vendor.currentEvent.name} className="w-full h-64 object-cover rounded-xl" />
+                                    </div>
+                                    <div className="space-y-3">
+                                        <div>
+                                            <span className="text-xs text-stone-500 uppercase">Event Type</span>
+                                            <p className="text-lg font-bold text-white">{vendor.currentEvent.type}</p>
+                                        </div>
+                                        <div>
+                                            <span className="text-xs text-stone-500 uppercase">Event Name</span>
+                                            <p className="text-lg font-bold text-white">{vendor.currentEvent.name}</p>
+                                        </div>
+                                        <div>
+                                            <span className="text-xs text-stone-500 uppercase">Description</span>
+                                            <p className="text-sm text-stone-300">{vendor.currentEvent.description}</p>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div>
+                                                <span className="text-xs text-stone-500 uppercase">Start Time</span>
+                                                <p className="text-sm text-white">{new Date(vendor.currentEvent.startTime).toLocaleString()}</p>
+                                            </div>
+                                            <div>
+                                                <span className="text-xs text-stone-500 uppercase">End Time</span>
+                                                <p className="text-sm text-white">{new Date(vendor.currentEvent.endTime).toLocaleString()}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Create/Edit Event Form */}
+                        <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-xl p-8">
+                            <h3 className="text-2xl font-bold text-white mb-6">{vendor.currentEvent ? 'Update Event' : 'Create New Event'}</h3>
+                            
+                            <div className="space-y-6">
+                                <div>
+                                    <label className="block text-sm font-medium text-stone-400 mb-2">Event Type</label>
+                                    <select
+                                        value={eventFormData.type}
+                                        onChange={(e) => setEventFormData(prev => ({ ...prev, type: e.target.value as RestaurantEventType }))}
+                                        className="w-full p-4 bg-stone-900 border border-stone-700 rounded-lg text-white text-lg"
+                                    >
+                                        {Object.values(RestaurantEventType).map(type => (
+                                            <option key={type} value={type}>{type}</option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-stone-400 mb-2">Event Name</label>
+                                    <input
+                                        type="text"
+                                        value={eventFormData.name}
+                                        onChange={(e) => setEventFormData(prev => ({ ...prev, name: e.target.value }))}
+                                        placeholder="e.g., Friday Night Live Jazz"
+                                        className="w-full p-4 bg-stone-900 border border-stone-700 rounded-lg text-white text-lg"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-stone-400 mb-2">Description</label>
+                                    <textarea
+                                        value={eventFormData.description}
+                                        onChange={(e) => setEventFormData(prev => ({ ...prev, description: e.target.value }))}
+                                        placeholder="Describe your event..."
+                                        rows={3}
+                                        className="w-full p-4 bg-stone-900 border border-stone-700 rounded-lg text-white text-lg"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-stone-400 mb-2">Full-Page Event Image URL</label>
+                                    <input
+                                        type="url"
+                                        value={eventFormData.image}
+                                        onChange={(e) => setEventFormData(prev => ({ ...prev, image: e.target.value }))}
+                                        placeholder="https://example.com/event-poster.jpg"
+                                        className="w-full p-4 bg-stone-900 border border-stone-700 rounded-lg text-white text-lg"
+                                    />
+                                    {eventFormData.image && (
+                                        <img src={eventFormData.image} alt="Preview" className="mt-3 w-full h-48 object-cover rounded-lg" />
+                                    )}
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-stone-400 mb-2">Start Date & Time</label>
+                                        <input
+                                            type="datetime-local"
+                                            value={eventFormData.startTime ? new Date(eventFormData.startTime).toISOString().slice(0, 16) : ''}
+                                            onChange={(e) => setEventFormData(prev => ({ ...prev, startTime: new Date(e.target.value).toISOString() }))}
+                                            className="w-full p-4 bg-stone-900 border border-stone-700 rounded-lg text-white"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-stone-400 mb-2">End Date & Time</label>
+                                        <input
+                                            type="datetime-local"
+                                            value={eventFormData.endTime ? new Date(eventFormData.endTime).toISOString().slice(0, 16) : ''}
+                                            onChange={(e) => setEventFormData(prev => ({ ...prev, endTime: new Date(e.target.value).toISOString() }))}
+                                            className="w-full p-4 bg-stone-900 border border-stone-700 rounded-lg text-white"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="flex items-center gap-3">
+                                    <label className="flex items-center gap-2 cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            checked={eventFormData.isActive || false}
+                                            onChange={(e) => setEventFormData(prev => ({ ...prev, isActive: e.target.checked }))}
+                                            className="w-5 h-5 text-green-600 bg-stone-900 border-stone-700 rounded focus:ring-green-500"
+                                        />
+                                        <span className="text-sm font-medium text-stone-300">Activate event immediately (show green glow)</span>
+                                    </label>
+                                </div>
+
+                                <button
+                                    onClick={handleSaveEvent}
+                                    className="w-full bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white font-bold py-4 rounded-xl transition-all shadow-lg"
+                                >
+                                    {vendor.currentEvent ? 'Update Event' : 'Create Event'}
+                                </button>
+
+                                <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-4 text-sm text-stone-300">
+                                    <p className="font-bold text-white mb-2">💡 How Events Work:</p>
+                                    <ul className="list-disc list-inside space-y-1">
+                                        <li>When activated, your profile button will glow <strong className="text-green-400">green</strong> in the feed</li>
+                                        <li>Customers clicking it will see your full-page event image</li>
+                                        <li>Event name, description, and timing will be displayed</li>
+                                        <li>Toggle the event on/off anytime using the switch above</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+                
                 {currentPage === 'profile' && (
                     <div className="space-y-6">
                         <h2 className="text-3xl font-bold text-white mb-4">📝 Restaurant Profile</h2>
@@ -572,6 +773,208 @@ const RestaurantDashboard: React.FC = () => {
                                         placeholder="Tell customers about your restaurant..."
                                     />
                                 </div>
+
+                                {/* Dine-In Promotion with Code */}
+                                <div className="bg-gradient-to-r from-orange-500/10 to-orange-600/10 border-2 border-orange-500/30 rounded-xl p-6">
+                                    <div className="flex items-center justify-between mb-4">
+                                        <div className="flex items-center gap-3">
+                                            <GiftIcon className="h-6 w-6 text-orange-500" />
+                                            <label className="text-xl font-bold text-white">🍽️ Dine-In Promotion</label>
+                                        </div>
+                                        <label className="flex items-center gap-2 cursor-pointer">
+                                            <input
+                                                type="checkbox"
+                                                checked={editFormData.dineInPromotion?.isActive || false}
+                                                onChange={(e) => {
+                                                    const isActive = e.target.checked;
+                                                    setEditFormData(prev => ({
+                                                        ...prev,
+                                                        dineInPromotion: {
+                                                            ...prev.dineInPromotion!,
+                                                            isActive,
+                                                            startTime: isActive && prev.dineInPromotion?.displayDuration !== 'always' 
+                                                                ? new Date().toISOString() 
+                                                                : prev.dineInPromotion?.startTime
+                                                        }
+                                                    }));
+                                                }}
+                                                className="w-5 h-5 text-orange-600 bg-stone-900 border-stone-700 rounded focus:ring-orange-500"
+                                            />
+                                            <span className="text-sm font-medium text-stone-300">Active</span>
+                                        </label>
+                                    </div>
+                                    <p className="text-stone-300 mb-4 text-sm">
+                                        Create a special promotion with a unique code that customers must present at your restaurant. Track redemptions and set time limits.
+                                    </p>
+                                    
+                                    <div className="space-y-4">
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <label className="block text-sm font-medium text-stone-400 mb-2">Dine-In Discount</label>
+                                                <select
+                                                    value={editFormData.dineInPromotion?.percentage || 10}
+                                                    onChange={(e) => setEditFormData(prev => ({
+                                                        ...prev,
+                                                        dineInPromotion: { ...prev.dineInPromotion!, percentage: parseInt(e.target.value) }
+                                                    }))}
+                                                    className="w-full p-3 bg-stone-900 border border-stone-700 rounded-lg text-white"
+                                                    disabled={!editFormData.dineInPromotion?.isActive}
+                                                >
+                                                    <option value="5">5% Off</option>
+                                                    <option value="10">10% Off</option>
+                                                    <option value="15">15% Off</option>
+                                                    <option value="20">20% Off</option>
+                                                    <option value="25">25% Off</option>
+                                                </select>
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-sm font-medium text-stone-400 mb-2">Menu Discount (Optional)</label>
+                                                <select
+                                                    value={editFormData.dineInPromotion?.menuDiscount || 0}
+                                                    onChange={(e) => setEditFormData(prev => ({
+                                                        ...prev,
+                                                        dineInPromotion: { 
+                                                            ...prev.dineInPromotion!, 
+                                                            menuDiscount: parseInt(e.target.value) || undefined 
+                                                        }
+                                                    }))}
+                                                    className="w-full p-3 bg-stone-900 border border-stone-700 rounded-lg text-white"
+                                                    disabled={!editFormData.dineInPromotion?.isActive}
+                                                >
+                                                    <option value="0">No Menu Discount</option>
+                                                    <option value="5">+5% Menu Discount</option>
+                                                    <option value="10">+10% Menu Discount</option>
+                                                    <option value="15">+15% Menu Discount</option>
+                                                </select>
+                                            </div>
+                                        </div>
+
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <label className="block text-sm font-medium text-stone-400 mb-2">Display Duration</label>
+                                                <select
+                                                    value={editFormData.dineInPromotion?.displayDuration || 'always'}
+                                                    onChange={(e) => {
+                                                        const duration = e.target.value as 'always' | '4h' | '8h' | '12h';
+                                                        setEditFormData(prev => ({
+                                                            ...prev,
+                                                            dineInPromotion: {
+                                                                ...prev.dineInPromotion!,
+                                                                displayDuration: duration,
+                                                                startTime: duration !== 'always' && prev.dineInPromotion?.isActive 
+                                                                    ? new Date().toISOString()
+                                                                    : prev.dineInPromotion?.startTime
+                                                            }
+                                                        }));
+                                                    }}
+                                                    className="w-full p-3 bg-stone-900 border border-stone-700 rounded-lg text-white"
+                                                    disabled={!editFormData.dineInPromotion?.isActive}
+                                                >
+                                                    <option value="always">Always On</option>
+                                                    <option value="4h">4 Hours</option>
+                                                    <option value="8h">8 Hours</option>
+                                                    <option value="12h">12 Hours</option>
+                                                </select>
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-sm font-medium text-stone-400 mb-2">
+                                                Promotion Code <span className="text-orange-400">(Required - customers must show this)</span>
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={editFormData.dineInPromotion?.code || ''}
+                                                onChange={(e) => setEditFormData(prev => ({
+                                                    ...prev,
+                                                    dineInPromotion: { ...prev.dineInPromotion!, code: e.target.value.toUpperCase() }
+                                                }))}
+                                                placeholder="e.g., DINE20, LUNCH15"
+                                                maxLength={12}
+                                                className="w-full p-3 bg-stone-900 border border-stone-700 rounded-lg text-white font-mono text-lg uppercase"
+                                                disabled={!editFormData.dineInPromotion?.isActive}
+                                            />
+                                            <p className="text-xs text-stone-500 mt-1">Make it memorable and easy to show (max 12 characters)</p>
+                                        </div>
+
+                                        {editFormData.dineInPromotion?.isActive && editFormData.dineInPromotion.code && (
+                                            <div className="bg-orange-500/10 border border-orange-500/30 rounded-lg p-4">
+                                                <div className="flex items-start gap-3">
+                                                    <CheckIcon className="h-5 w-5 text-orange-500 flex-shrink-0 mt-0.5" />
+                                                    <div className="flex-1">
+                                                        <p className="text-sm font-medium text-white mb-2">Preview (what customers see):</p>
+                                                        <div className="bg-gradient-to-r from-orange-600 to-orange-500 text-white px-4 py-3 rounded-xl text-sm">
+                                                            <div className="font-bold">Visit Us & Get {editFormData.dineInPromotion.percentage}% Off Dine-In!</div>
+                                                            <div className="text-xs mt-1 text-orange-100">Tap to reveal code • Must present at restaurant</div>
+                                                            <div className="mt-2 bg-white text-orange-600 rounded-lg py-2 px-3 font-black text-2xl text-center font-mono">
+                                                                {editFormData.dineInPromotion.code}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Redemption Stats */}
+                                        {(vendor.dineInPromotion?.totalRedemptions !== undefined && vendor.dineInPromotion.totalRedemptions > 0) && (
+                                            <div className="bg-stone-800/50 rounded-lg p-4 border border-stone-700">
+                                                <div className="flex items-center justify-between">
+                                                    <div>
+                                                        <p className="text-sm text-stone-400">Total Redemptions</p>
+                                                        <p className="text-3xl font-bold text-orange-500">{vendor.dineInPromotion.totalRedemptions}</p>
+                                                    </div>
+                                                    {vendor.dineInPromotion.lastRedemption && (
+                                                        <div className="text-right">
+                                                            <p className="text-sm text-stone-400">Last Used</p>
+                                                            <p className="text-sm text-white">
+                                                                {new Date(vendor.dineInPromotion.lastRedemption).toLocaleString()}
+                                                            </p>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                                
+                                {/* YouTube Live Stream Setup - ONE TIME ONLY! */}
+                                <div className="bg-gradient-to-r from-red-500/10 to-orange-500/10 border-2 border-red-500/30 rounded-xl p-6">
+                                    <div className="flex items-center gap-3 mb-4">
+                                        <div className="relative">
+                                            <div className="w-4 h-4 bg-red-500 rounded-full animate-pulse"></div>
+                                            <div className="absolute inset-0 bg-red-500 rounded-full animate-ping"></div>
+                                        </div>
+                                        <label className="text-xl font-bold text-white">📺 YouTube Live Stream Setup</label>
+                                    </div>
+                                    <p className="text-stone-300 mb-4 text-lg">
+                                        ⚡ <strong>ONE-TIME SETUP:</strong> Enter your YouTube stream ID once, and it works forever! 
+                                        Your stream key never changes, so you can go live anytime without updating this field.
+                                    </p>
+                                    <input
+                                        type="text"
+                                        value={editFormData.youtubeStreamId || vendor.youtubeStreamId || ''}
+                                        onChange={(e) => setEditFormData(prev => ({ ...prev, youtubeStreamId: e.target.value }))}
+                                        className="w-full p-4 bg-stone-900 border border-stone-700 rounded-lg text-white text-lg font-mono"
+                                        placeholder="e.g., jfKfPfyJRdk"
+                                    />
+                                    <div className="mt-3 bg-black/30 rounded-lg p-4">
+                                        <p className="text-sm text-stone-400 mb-2">📍 <strong>How to find your Stream ID:</strong></p>
+                                        <ol className="text-sm text-stone-400 space-y-1 ml-4 list-decimal">
+                                            <li>Go to <span className="text-red-400 font-bold">YouTube Studio</span> → Click "Go Live"</li>
+                                            <li>Copy your <span className="text-red-400 font-bold">Stream URL</span> or <span className="text-red-400 font-bold">Stream Key</span></li>
+                                            <li>The ID is the part after <span className="font-mono bg-stone-800 px-1 rounded">watch?v=</span></li>
+                                            <li><strong>Save it here once</strong> - you'll never need to change it!</li>
+                                        </ol>
+                                    </div>
+                                    <div className="mt-4 flex items-center gap-2 text-green-400">
+                                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                        </svg>
+                                        <span className="text-sm font-bold">Set it once, stream forever! Just open YouTube Studio and click "Go Live" whenever you want to stream.</span>
+                                    </div>
+                                </div>
+                                
                                 <button
                                     onClick={() => {
                                         updateVendorDetails(vendor.id, editFormData);
@@ -583,6 +986,214 @@ const RestaurantDashboard: React.FC = () => {
                                 </button>
                             </div>
                         </div>
+                    </div>
+                )}
+                
+                {currentPage === 'promotions' && (
+                    <div className="space-y-6">
+                        <h2 className="text-3xl font-bold text-white mb-4">🎁 Promotions & Discounts</h2>
+                        
+                        {/* Dine-In Promotion Card */}
+                        <div className="bg-gradient-to-r from-orange-500/10 to-orange-600/10 border-2 border-orange-500/30 rounded-xl p-6">
+                            <div className="flex items-center justify-between mb-4">
+                                <div className="flex items-center gap-3">
+                                    <GiftIcon className="h-6 w-6 text-orange-500" />
+                                    <label className="text-xl font-bold text-white">🍽️ Dine-In Promotion</label>
+                                </div>
+                                <label className="flex items-center gap-2 cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        checked={editFormData.dineInPromotion?.isActive || false}
+                                        onChange={(e) => {
+                                            const isActive = e.target.checked;
+                                            setEditFormData(prev => ({
+                                                ...prev,
+                                                dineInPromotion: {
+                                                    ...prev.dineInPromotion!,
+                                                    isActive,
+                                                    startTime: isActive && prev.dineInPromotion?.displayDuration !== 'always' 
+                                                        ? new Date().toISOString() 
+                                                        : prev.dineInPromotion?.startTime
+                                                }
+                                            }));
+                                        }}
+                                        className="w-5 h-5 text-orange-600 bg-stone-900 border-stone-700 rounded focus:ring-orange-500"
+                                    />
+                                    <span className={`text-sm font-bold ${editFormData.dineInPromotion?.isActive ? 'text-orange-400' : 'text-stone-500'}`}>
+                                        {editFormData.dineInPromotion?.isActive ? '✓ Active' : 'Inactive'}
+                                    </span>
+                                </label>
+                            </div>
+
+                            <div className="space-y-4">
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-stone-400 mb-2">Dine-In Discount</label>
+                                        <select
+                                            value={editFormData.dineInPromotion?.percentage || 10}
+                                            onChange={(e) => setEditFormData(prev => ({
+                                                ...prev,
+                                                dineInPromotion: { ...prev.dineInPromotion!, percentage: parseInt(e.target.value) }
+                                            }))}
+                                            className="w-full p-3 bg-stone-900 border border-stone-700 rounded-lg text-white"
+                                            disabled={!editFormData.dineInPromotion?.isActive}
+                                        >
+                                            <option value="5">5% Off</option>
+                                            <option value="10">10% Off</option>
+                                            <option value="15">15% Off</option>
+                                            <option value="20">20% Off</option>
+                                            <option value="25">25% Off</option>
+                                        </select>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium text-stone-400 mb-2">Menu Discount (Optional)</label>
+                                        <select
+                                            value={editFormData.dineInPromotion?.menuDiscount || 0}
+                                            onChange={(e) => setEditFormData(prev => ({
+                                                ...prev,
+                                                dineInPromotion: { 
+                                                    ...prev.dineInPromotion!, 
+                                                    menuDiscount: parseInt(e.target.value) || undefined 
+                                                }
+                                            }))}
+                                            className="w-full p-3 bg-stone-900 border border-stone-700 rounded-lg text-white"
+                                            disabled={!editFormData.dineInPromotion?.isActive}
+                                        >
+                                            <option value="0">No Menu Discount</option>
+                                            <option value="5">+5% All Menu Items</option>
+                                            <option value="10">+10% All Menu Items</option>
+                                            <option value="15">+15% All Menu Items</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-stone-400 mb-2">Display Duration</label>
+                                        <select
+                                            value={editFormData.dineInPromotion?.displayDuration || 'always'}
+                                            onChange={(e) => {
+                                                const duration = e.target.value as 'always' | '4h' | '8h' | '12h';
+                                                setEditFormData(prev => ({
+                                                    ...prev,
+                                                    dineInPromotion: {
+                                                        ...prev.dineInPromotion!,
+                                                        displayDuration: duration,
+                                                        startTime: duration !== 'always' && prev.dineInPromotion?.isActive 
+                                                            ? new Date().toISOString()
+                                                            : prev.dineInPromotion?.startTime
+                                                    }
+                                                }));
+                                            }}
+                                            className="w-full p-3 bg-stone-900 border border-stone-700 rounded-lg text-white"
+                                            disabled={!editFormData.dineInPromotion?.isActive}
+                                        >
+                                            <option value="always">Always On</option>
+                                            <option value="4h">4 Hours (Flash Sale)</option>
+                                            <option value="8h">8 Hours (Day Promo)</option>
+                                            <option value="12h">12 Hours (Extended)</option>
+                                        </select>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium text-stone-400 mb-2">Promo Code</label>
+                                        <input
+                                            type="text"
+                                            value={editFormData.dineInPromotion?.code || ''}
+                                            onChange={(e) => {
+                                                const value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+                                                setEditFormData(prev => ({
+                                                    ...prev,
+                                                    dineInPromotion: { ...prev.dineInPromotion!, code: value }
+                                                }));
+                                            }}
+                                            className="w-full p-3 bg-stone-900 border border-stone-700 rounded-lg text-white font-mono"
+                                            placeholder="e.g., DINE15"
+                                            maxLength={10}
+                                            disabled={!editFormData.dineInPromotion?.isActive}
+                                        />
+                                        <p className="text-xs text-stone-500 mt-1">Customers must show this code at restaurant</p>
+                                    </div>
+                                </div>
+
+                                {/* Preview */}
+                                {editFormData.dineInPromotion?.isActive && editFormData.dineInPromotion.code && (
+                                    <div className="bg-orange-500/10 border border-orange-500/30 rounded-lg p-4">
+                                        <p className="text-sm font-medium text-white mb-2">Preview (what customers see):</p>
+                                        <div className="bg-gradient-to-r from-orange-600 to-orange-500 text-white px-4 py-3 rounded-xl">
+                                            <div className="flex items-center gap-2 flex-wrap mb-2">
+                                                <div className="font-bold text-base">Visit Us & Get {editFormData.dineInPromotion.percentage}% Off Dine-In!</div>
+                                                {editFormData.dineInPromotion.menuDiscount && (
+                                                    <div className="bg-yellow-400 text-orange-900 px-2 py-0.5 rounded-full text-xs font-black uppercase border border-yellow-300">
+                                                        +{editFormData.dineInPromotion.menuDiscount}% Menu Discount
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <div className="text-xs text-orange-100 mb-2">
+                                                Tap to reveal code • Must present at restaurant
+                                                {editFormData.dineInPromotion.menuDiscount && ' • Applies to all menu items'}
+                                            </div>
+                                            <div className="bg-white text-orange-600 rounded-lg py-2 px-3 font-black text-2xl text-center font-mono">
+                                                {editFormData.dineInPromotion.code}
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Stats */}
+                                {(vendor.dineInPromotion?.totalRedemptions !== undefined && vendor.dineInPromotion.totalRedemptions > 0) && (
+                                    <div className="bg-stone-800/50 rounded-lg p-4 border border-stone-700">
+                                        <div className="flex items-center justify-between">
+                                            <div>
+                                                <p className="text-sm text-stone-400">Total Redemptions</p>
+                                                <p className="text-3xl font-bold text-orange-500">{vendor.dineInPromotion.totalRedemptions}</p>
+                                            </div>
+                                            {vendor.dineInPromotion.lastRedemption && (
+                                                <div className="text-right">
+                                                    <p className="text-sm text-stone-400">Last Used</p>
+                                                    <p className="text-sm text-white">
+                                                        {new Date(vendor.dineInPromotion.lastRedemption).toLocaleString()}
+                                                    </p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Info Cards */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="bg-stone-800/50 rounded-xl p-4 border border-stone-700">
+                                <h4 className="font-bold text-white mb-2">💡 How It Works</h4>
+                                <ul className="text-sm text-stone-400 space-y-1">
+                                    <li>• Customers see promo badge on your profile</li>
+                                    <li>• They tap to reveal the unique code</li>
+                                    <li>• Show code at restaurant to redeem discount</li>
+                                    <li>• Menu discount applies to all food items</li>
+                                </ul>
+                            </div>
+                            <div className="bg-stone-800/50 rounded-xl p-4 border border-stone-700">
+                                <h4 className="font-bold text-white mb-2">⚡ Pro Tips</h4>
+                                <ul className="text-sm text-stone-400 space-y-1">
+                                    <li>• Use timed promos for lunch/dinner rush</li>
+                                    <li>• Add menu discount to boost visibility</li>
+                                    <li>• Change codes weekly to track campaigns</li>
+                                    <li>• Higher discounts = more customer visits</li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <button
+                            onClick={() => {
+                                updateVendorDetails(vendor.id, editFormData);
+                                alert('Promotions updated successfully!');
+                            }}
+                            className="w-full p-4 bg-gradient-to-r from-orange-500 to-amber-500 text-white font-bold text-xl rounded-xl hover:from-orange-600 hover:to-amber-600 transition-all shadow-lg"
+                        >
+                            💾 Save Promotions
+                        </button>
                     </div>
                 )}
                 

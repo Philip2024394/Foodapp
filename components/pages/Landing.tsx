@@ -57,10 +57,13 @@ const Landing: React.FC = () => {
         <div className="mt-8 pt-6 border-t border-white/20">
           <p className="text-sm text-stone-400 mb-3">Restaurant Partner?</p>
           <button
-            onClick={() => navigateTo(Page.RESTAURANT_DASHBOARD)}
-            className="px-8 py-3 bg-stone-800/60 backdrop-blur-lg border border-stone-600 text-white font-semibold rounded-full shadow-lg hover:bg-stone-700/60 transform hover:scale-105 transition-all duration-300"
+            onClick={() => {
+              selectLanguage('en');
+              navigateTo(Page.RESTAURANT_DASHBOARD);
+            }}
+            className="px-8 py-3 bg-orange-500 backdrop-blur-lg border border-orange-600 text-white font-bold rounded-full shadow-lg hover:bg-orange-600 transform hover:scale-105 transition-all duration-300"
           >
-            Restaurant Dashboard
+            🏪 Restaurant Dashboard
           </button>
         </div>
       </div>

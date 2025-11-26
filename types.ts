@@ -42,11 +42,53 @@ export enum OrderStatus {
   ACCEPTED = 'accepted',         // Restaurant accepted the order
   PREPARING = 'preparing',       // Restaurant is cooking
   READY = 'ready',              // Food is ready for pickup
+  DRIVER_ASSIGNED = 'driver_assigned', // Driver accepted and heading to restaurant
   PICKED_UP = 'picked_up',      // Driver picked up the food
   ON_THE_WAY = 'on_the_way',    // Driver is delivering
   DELIVERED = 'delivered',       // Order completed
   CANCELLED = 'cancelled',       // Order cancelled
   REJECTED = 'rejected'          // Restaurant rejected
+}
+
+export enum PaymentMethod {
+  CASH_ON_DELIVERY = 'Cash on Delivery',
+  BANK_TRANSFER = 'Bank Transfer'
+}
+
+export enum PaymentProvider {
+  BCA = 'BCA',
+  MANDIRI = 'Mandiri',
+  BNI = 'BNI',
+  BRI = 'BRI',
+  GOPAY = 'GoPay',
+  OVO = 'OVO',
+  DANA = 'DANA'
+}
+
+export enum ReviewEmoji {
+  SAD = 'sad',
+  NEUTRAL = 'neutral',
+  HAPPY = 'happy',
+  EXCITED = 'excited'
+}
+
+export enum GroupOrderStatus {
+  OPEN = 'open',           // Accepting participants
+  CLOSED = 'closed',       // No longer accepting
+  CONFIRMED = 'confirmed', // All restaurants confirmed
+  PAID = 'paid',          // Payment completed
+  PROCESSING = 'processing' // Orders being prepared
+}
+
+export enum ScheduledOrderStatus {
+  PENDING_CONFIRMATION = 'pending_confirmation', // Waiting for restaurant
+  CONFIRMED = 'confirmed',                       // Restaurant confirmed
+  DRIVER_BOOKED = 'driver_booked',              // Driver assigned in advance
+  PAYMENT_PENDING = 'payment_pending',           // Needs payment after confirmation
+  PAID = 'paid',                                 // Paid and scheduled
+  ACTIVE = 'active',                            // Order time arrived, in progress
+  COMPLETED = 'completed',
+  CANCELLED = 'cancelled'
 }
 
 export enum BusinessCategory {
@@ -76,6 +118,144 @@ export interface Discount {
   id: string;
   dayOfWeek: number; // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
   percentage: number;
+  startTime: string;
+  endTime: string;
+}
+
+export interface LoyaltyRewardTier {
+  id: string;
+  pointsRequired: number;
+  rewardType: 'discount' | 'free_item';
+  discountPercentage?: number; // If rewardType is 'discount'
+  freeItemId?: string; // If rewardType is 'free_item', references MenuItem.id
+  freeItemName?: string; // Display name of free item
+  description: string; // e.g., "10% off next order" or "Free Nasi Goreng"
+  validityDays?: number; // How many days reward is valid after earning (default 30)
+}
+
+export interface UserLoyaltyPoints {
+  vendorId: string;
+  vendorName: string;
+  totalPoints: number; // Lifetime points
+  currentMonthPoints: number; // Points earned this month
+  currentMonthOrderCount: number; // Orders this month
+  lastOrderDate: string; // ISO timestamp
+  monthStartDate: string; // Start of current tracking month
+  earnedRewards: EarnedReward[]; // Available rewards to redeem
+}
+
+export interface EarnedReward {
+  id: string;
+  tierId: string;
+  vendorId: string;
+  vendorName: string;
+  rewardType: 'discount' | 'free_item';
+  discountPercentage?: number;
+  freeItemId?: string;
+  freeItemName?: string;
+  description: string;
+  earnedDate: string; // ISO timestamp
+  expiryDate: string; // ISO timestamp
+  isRedeemed: boolean;
+  redeemedDate?: string;
+  orderId?: string; // Order where reward was redeemed
+}
+
+export interface GroupOrder {
+  id: string;
+  coordinatorId: string;
+  coordinatorName: string;
+  coordinatorPhone: string;
+  status: GroupOrderStatus;
+  createdAt: string;
+  expiresAt?: string; // Optional deadline to join
+  participants: GroupOrderParticipant[];
+  totalAmount: number;
+  totalDeliveryFees: number; // Sum of all restaurant delivery fees
+  deliveryAddress: string;
+  paymentMethod?: PaymentMethod;
+  shareableLink: string; // Unique link to join group order
+}
+
+export interface GroupOrderParticipant {
+  userId: string;
+  userName: string;
+  vendorId: string;
+  vendorName: string;
+  items: CartItem[];
+  subtotal: number;
+  deliveryFee: number; // Individual delivery fee for this restaurant
+  total: number;
+  joinedAt: string;
+}
+
+export interface ScheduledOrder {
+  id: string;
+  vendorId: string;
+  vendorName: string;
+  customerName: string;
+  customerPhone: string;
+  customerWhatsApp?: string;
+  scheduledFor: string; // ISO timestamp for when order should be delivered
+  requestedPrepStartTime?: string; // When restaurant should start preparing
+  items: CartItem[];
+  subtotal: number;
+  deliveryFee: number;
+  discount?: number;
+  total: number;
+  status: ScheduledOrderStatus;
+  createdAt: string;
+  confirmedAt?: string; // When restaurant confirmed
+  confirmedBy?: string; // Restaurant owner/staff name
+  rejectionReason?: string;
+  paymentMethod?: PaymentMethod;
+  paymentProvider?: PaymentProvider;
+  transferProof?: string;
+  paidAt?: string;
+  driverInfo?: {
+    driverId: string;
+    driverName: string;
+    driverPhone: string;
+    driverWhatsApp: string;
+    vehicleType: string;
+    vehiclePlate?: string;
+    bookedAt: string; // When driver was pre-booked
+  };
+  deliveryAddress: string;
+  specialInstructions?: string;
+  estimatedPrepTime?: number;
+  actualOrderId?: string; // Links to FoodOrder when order becomes active
+}
+
+export interface OrderTrackingData {
+  orderId: string;
+  driverLocation: {
+    lat: number;
+    lng: number;
+  };
+  driverHeading: number; // Direction driver is facing (0-360 degrees)
+  restaurantLocation: {
+    lat: number;
+    lng: number;
+  };
+  deliveryLocation: {
+    lat: number;
+    lng: number;
+  };
+  route?: {
+    coordinates: { lat: number; lng: number }[];
+    distance: number; // meters
+    duration: number; // seconds
+  };
+  estimatedArrival: string; // ISO timestamp
+  currentStatus: OrderStatus;
+  lastUpdated: string;
+}
+
+export interface Discount {
+  id: string;
+  dayOfWeek: number; // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+  percentage: number;
   startTime: string; // "HH:mm" format
   endTime: string; // "HH:mm" format
 }
@@ -99,6 +279,116 @@ export interface DineInPromotion {
   totalRedemptions?: number; // Track how many times code was used
   lastRedemption?: string; // ISO timestamp of last use
   menuDiscount?: number; // Optional additional menu discount (5, 10, or 15%)
+}
+
+export type CateringEventType = 'wedding' | 'birthday' | 'anniversary' | 'graduation' | 'party' | 'family_reunion' | 'corporate' | 'other';
+
+export interface CateringService {
+  isActive: boolean; // Restaurant offers catering services
+  eventTypes: CateringEventType[]; // Types of events supported
+  offSiteService: boolean; // Catering at customer's location
+  onSiteService: boolean; // Events at restaurant venue
+  // On-site event facilities
+  indoorSeating?: number; // Number of seats for indoor events
+  outdoorSeating?: number; // Number of seats for outdoor events
+  hasLiveMusic: boolean; // Live music available
+  hasCakeService: boolean; // Custom cake ordering
+  hasDecorations: boolean; // Event decoration services
+  hasAVEquipment: boolean; // Audio/visual equipment (mic, projector, etc.)
+  hasParking: boolean; // Parking available
+  hasKidsArea: boolean; // Kids play area
+  // Pricing and requirements
+  minimumGuests?: number; // Minimum number of guests
+  pricePerPerson?: number; // Starting price per person in IDR
+  advanceBookingDays?: number; // How many days advance notice needed
+  description?: string; // Custom description of catering services
+}
+
+export interface AlcoholDrink {
+  id: string;
+  name: string;
+  type: 'beer' | 'wine' | 'spirits' | 'cocktail' | 'other'; // Drink category
+  price: number; // Price in IDR
+  image: string; // Drink image URL
+  description?: string; // Optional description
+  alcoholPercentage?: number; // Alcohol content percentage
+  volume?: string; // e.g., "330ml", "750ml", "1L"
+}
+
+export interface AlcoholMenu {
+  isActive: boolean; // Restaurant serves alcohol
+  drinks: AlcoholDrink[]; // List of alcoholic beverages
+  servingHours?: string; // e.g., "5 PM - 12 AM"
+  requiresID: boolean; // Always true for legal compliance
+}
+
+export enum SocialPlatform {
+  WHATSAPP = 'WhatsApp',
+  FACEBOOK = 'Facebook',
+  TWITTER = 'Twitter',
+  INSTAGRAM = 'Instagram',
+  TELEGRAM = 'Telegram',
+  LINKEDIN = 'LinkedIn'
+}
+
+export interface ShareProof {
+  id: string;
+  userId: string;
+  vendorId: string;
+  vendorName: string;
+  platform: SocialPlatform;
+  screenshotUrl: string; // URL to uploaded screenshot
+  postLink: string; // Link to actual social media post
+  timestamp: string; // ISO timestamp when proof was submitted
+  verified: boolean; // Restaurant can verify it's real
+  promoCode: string; // Generated unique code (e.g., "SHARE10-ABC123")
+  redeemed: boolean; // Whether promo code has been used
+  redemptionDate?: string; // When code was redeemed
+}
+
+export interface FoodReview {
+  id: string;
+  orderId: string;
+  vendorId: string;
+  vendorName: string;
+  customerId: string;
+  customerName: string;
+  customerWhatsApp: string;
+  emoji: ReviewEmoji;
+  rating: number; // 1-5 stars
+  comment: string;
+  images?: string[]; // Optional photos
+  timestamp: string; // ISO timestamp
+  vendorResponse?: {
+    message: string;
+    timestamp: string;
+  };
+  helpful?: number; // Number of users who found review helpful
+}
+
+export interface RestaurantAnalytics {
+  vendorId: string;
+  period: 'today' | 'week' | 'month' | 'all';
+  totalOrders: number;
+  totalRevenue: number;
+  averageOrderValue: number;
+  completedOrders: number;
+  cancelledOrders: number;
+  averageRating: number;
+  totalReviews: number;
+  popularItems: {
+    itemId: string;
+    itemName: string;
+    orderCount: number;
+    revenue: number;
+  }[];
+  peakHours: {
+    hour: number; // 0-23
+    orderCount: number;
+  }[];
+  recentReviews: FoodReview[];
+  customerRetention: number; // Percentage of repeat customers
+  averagePreparationTime: number; // in minutes
 }
 
 export enum RestaurantEventType {
@@ -183,6 +473,14 @@ export interface Vendor {
     accountNumber: string;
     accountHolder: string;
   };
+  acceptedPaymentProviders?: PaymentProvider[]; // Which payment methods restaurant accepts for bank transfer
+  deliveryFee?: number; // Default delivery fee in IDR
+  // Loyalty Program Configuration
+  loyaltyProgram?: {
+    isActive: boolean;
+    pointsPerOrder: number; // Points earned per completed order (default 1)
+    rewardTiers: LoyaltyRewardTier[];
+  };
   // New fields for business profiles
   logo?: string;
   tagline?: string;
@@ -203,6 +501,8 @@ export interface Vendor {
   discounts?: Discount[];
   vouchers?: Voucher[];
   dineInPromotion?: DineInPromotion; // Special dine-in promotion with code requirement
+  cateringService?: CateringService; // Catering and event hosting services (optional)
+  alcoholMenu?: AlcoholMenu; // Alcoholic beverages menu (optional, 21+ only)
   currentEvent?: RestaurantEvent; // Active event happening now
   bio?: string;
   cuisine?: string;
@@ -382,8 +682,11 @@ export interface FoodOrder {
   items: CartItem[];
   subtotal: number;
   deliveryFee: number;
+  discount?: number; // Applied discount amount
   total: number;
-  paymentMethod: 'cash' | 'transfer';
+  paymentMethod: PaymentMethod;
+  paymentProvider?: PaymentProvider; // If bank transfer selected
+  transferProof?: string; // Screenshot URL if bank transfer
   status: OrderStatus;
   statusHistory: {
     status: OrderStatus;
@@ -397,8 +700,13 @@ export interface FoodOrder {
     driverId: string;
     driverName: string;
     driverPhone: string;
+    driverWhatsApp: string;
     vehicleType: string;
+    vehiclePlate?: string;
   };
+  specialInstructions?: string;
+  reviewed?: boolean; // Has customer left a review
+  reviewId?: string;
   paymentProof?: string; // URL to uploaded image
   notes?: string;
 }

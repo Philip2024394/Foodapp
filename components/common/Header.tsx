@@ -28,7 +28,12 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick, isDrawerOpen }) => {
           <div className="hidden lg:flex items-center space-x-6">
              <button onClick={() => navigateTo(Page.FOOD)} className="nav-link-hover text-stone-300 hover:text-orange-500 transition-colors font-medium">Street Food</button>
              <button onClick={() => navigateTo(Page.FOOD_DIRECTORY)} className="nav-link-hover text-stone-300 hover:text-orange-500 transition-colors font-medium">Food Directory</button>
-             <button onClick={() => navigateTo(Page.RESTAURANT_DASHBOARD)} className="nav-link-hover text-stone-300 hover:text-orange-500 transition-colors font-medium">Restaurant</button>
+             <button 
+               onClick={() => navigateTo(Page.RESTAURANT_DASHBOARD)} 
+               className="px-4 py-2 bg-orange-500 text-white font-bold rounded-lg hover:bg-orange-600 transition-colors"
+             >
+               Restaurant Dashboard
+             </button>
           </div>
 
           <div className="flex items-center space-x-2">

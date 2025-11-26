@@ -8,6 +8,7 @@ import BookingHistoryCard from '../profile/BookingHistoryCard';
 import { useAuthContext } from '../../hooks/useAuthContext';
 import LoadingSpinner from '../common/LoadingSpinner';
 import { validateIndonesianPhoneNumber, formatPhoneNumberDisplay } from '../../utils/whatsapp';
+import { getUserShareProofs } from '../../utils/shareProofUtils';
 
 const AuthForm: React.FC = () => {
     const { signIn, signUp } = useAuthContext();
@@ -94,6 +95,11 @@ const Profile: React.FC = () => {
     const [isEditingWhatsApp, setIsEditingWhatsApp] = useState(false);
     const [whatsAppInput, setWhatsAppInput] = useState('');
     const [whatsAppError, setWhatsAppError] = useState('');
+    
+    // Get user's share proofs
+    const shareProofs = useMemo(() => 
+        getUserShareProofs(user?.id || 'current_user_id'), // TODO: Use actual user ID
+    [user?.id]);
 
     const sortedBookings = useMemo(() => {
         return [...bookingHistory].sort((a, b) => {
@@ -261,6 +267,82 @@ const Profile: React.FC = () => {
                             </div>
                             <span className="text-2xl text-orange-400 group-hover:translate-x-2 transition-transform">&rarr;</span>
                         </div>
+                    </div>
+
+                    <div className="mt-10">
+                        <h2 className="text-2xl font-bold text-stone-100 mb-4">My Share Rewards</h2>
+                        <p className="text-sm text-stone-400 -mt-3 mb-4">Earn 10% dine-in discount codes by sharing restaurants on social media</p>
+                        {shareProofs.length > 0 ? (
+                            <div className="space-y-3">
+                                {shareProofs.map(proof => (
+                                    <div key={proof.id} className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-xl p-4">
+                                        <div className="flex items-start justify-between mb-3">
+                                            <div className="flex items-center gap-3">
+                                                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                                                    proof.platform === 'WhatsApp' ? 'bg-green-500' :
+                                                    proof.platform === 'Facebook' ? 'bg-blue-600' :
+                                                    proof.platform === 'Twitter' ? 'bg-black' :
+                                                    proof.platform === 'Instagram' ? 'bg-gradient-to-br from-purple-600 via-pink-600 to-orange-500' :
+                                                    proof.platform === 'Telegram' ? 'bg-sky-500' :
+                                                    proof.platform === 'LinkedIn' ? 'bg-blue-700' :
+                                                    'bg-gray-500'
+                                                }`}>
+                                                    <span className="text-white font-bold text-sm">{proof.platform[0]}</span>
+                                                </div>
+                                                <div>
+                                                    <h3 className="text-white font-semibold">{proof.vendorName}</h3>
+                                                    <p className="text-xs text-stone-400">{new Date(proof.timestamp).toLocaleDateString()}</p>
+                                                </div>
+                                            </div>
+                                            <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                                                proof.redeemed ? 'bg-gray-500/20 text-gray-400' :
+                                                proof.verified ? 'bg-green-500/20 text-green-400' :
+                                                'bg-yellow-500/20 text-yellow-400'
+                                            }`}>
+                                                {proof.redeemed ? 'Redeemed' : proof.verified ? 'Verified' : 'Pending'}
+                                            </span>
+                                        </div>
+                                        
+                                        <div className="bg-black/30 rounded-lg p-3 border border-orange-500/30">
+                                            <div className="flex items-center justify-between">
+                                                <div>
+                                                    <p className="text-xs text-stone-400 mb-1">Promo Code</p>
+                                                    <p className="text-lg font-bold text-orange-400 tracking-wider">{proof.promoCode}</p>
+                                                </div>
+                                                <div className="text-right">
+                                                    <p className="text-2xl font-bold text-white">10%</p>
+                                                    <p className="text-xs text-stone-400">OFF</p>
+                                                </div>
+                                            </div>
+                                            {!proof.redeemed && proof.verified && (
+                                                <p className="text-xs text-green-400 mt-2">✓ Ready to use at {proof.vendorName}</p>
+                                            )}
+                                            {!proof.verified && (
+                                                <p className="text-xs text-yellow-400 mt-2">⏳ Waiting for restaurant verification</p>
+                                            )}
+                                            {proof.redeemed && (
+                                                <p className="text-xs text-gray-400 mt-2">Used on {new Date(proof.redemptionDate!).toLocaleDateString()}</p>
+                                            )}
+                                        </div>
+                                        
+                                        <a 
+                                            href={proof.postLink} 
+                                            target="_blank" 
+                                            rel="noopener noreferrer"
+                                            className="text-xs text-orange-400 hover:text-orange-300 mt-2 inline-block"
+                                        >
+                                            View post on {proof.platform} →
+                                        </a>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="text-center py-10 bg-white/5 backdrop-blur-sm rounded-lg border border-white/10">
+                                <div className="text-5xl mb-3">🎁</div>
+                                <p className="text-stone-300 font-semibold mb-2">No share rewards yet</p>
+                                <p className="text-stone-400 text-sm">Share restaurants on social media to earn 10% discount codes!</p>
+                            </div>
+                        )}
                     </div>
 
                     <div className="mt-10">

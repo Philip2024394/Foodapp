@@ -7,7 +7,7 @@ import { useAuthContext } from '../../hooks/useAuthContext';
 const ServiceTile: React.FC<{ title: string; icon: React.ReactNode; onClick: () => void; isGlowing: boolean; isLargeIcon?: boolean; textOnTop?: boolean; }> = ({ title, icon, onClick, isGlowing, isLargeIcon, textOnTop }) => (
     <div
         onClick={onClick}
-        className={`group aspect-square bg-white/5 rounded-xl flex flex-col items-center justify-center p-2 text-white font-bold text-center backdrop-blur-xl border border-white/10 hover:bg-white/10 transition-all duration-300 cursor-pointer ${isGlowing ? 'glowing-tile' : ''}`}
+        className={`group aspect-square bg-white/10 rounded-xl flex flex-col items-center justify-center p-2 text-white font-bold text-center backdrop-blur-xl border-2 border-white/20 hover:bg-white/20 transition-all duration-300 cursor-pointer shadow-lg ${isGlowing ? 'glowing-tile' : ''}`}
     >
         {textOnTop && <span className="text-xs md:text-sm">{title}</span>}
         <div className={`${isLargeIcon ? 'w-3/4 h-3/4' : 'w-1/3 h-1/3'} ${textOnTop ? 'mt-1' : 'mb-1'} text-orange-500 transform transition-transform duration-300 group-hover:scale-110`}>

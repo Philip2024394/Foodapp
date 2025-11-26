@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { Vendor, MenuItem, Booking, BookingType, Discount, ShopItem, Voucher, MembershipTier, RestaurantEvent, RestaurantEventType } from '../../types';
+import { Vendor, MenuItem, Booking, BookingType, Discount, ShopItem, Voucher, MembershipTier, RestaurantEvent, RestaurantEventType, CateringService, CateringEventType, AlcoholMenu, AlcoholDrink } from '../../types';
 import { useDataContext } from '../../hooks/useDataContext';
 import { StarIcon, FoodIcon, EditIcon, TrashIcon, GiftIcon } from '../common/Icon';
 import Modal from '../common/Modal';
@@ -9,7 +9,9 @@ import LoadingSpinner from '../common/LoadingSpinner';
 import { MEMBERSHIP_PACKAGES, isMembershipActive } from '../../constants';
 import { formatIndonesianCurrency } from '../../utils/formatters';
 import { validateIndonesianPhoneNumber, formatPhoneNumberDisplay } from '../../utils/whatsapp';
-import OrderManagement from '../admin/OrderManagement';
+import RestaurantPOS from '../common/RestaurantPOS';
+import LoyaltyProgramManager from '../vendor/LoyaltyProgramManager';
+import RestaurantAnalyticsDashboard from '../common/RestaurantAnalyticsDashboard';
 
 // Indonesian Banks List
 const INDONESIAN_BANKS = [
@@ -49,7 +51,7 @@ const INDONESIAN_BANKS = [
 // Mock logged-in vendor for demo purposes. In a real app, this would come from an auth context.
 const LOGGED_IN_VENDOR_ID = 'v1'; // Warung Bu Ani
 
-type DashboardPage = 'orders' | 'menu' | 'profile' | 'bank' | 'membership' | 'events' | 'promotions';
+type DashboardPage = 'orders' | 'menu' | 'loyalty' | 'analytics' | 'scheduled' | 'profile' | 'bank' | 'membership' | 'events' | 'promotions' | 'vouchers' | 'catering' | 'alcohol';
 
 const StatCard: React.FC<{ title: string; value: string | number; icon: React.ReactNode }> = ({ title, value, icon }) => (
     <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-xl p-4 flex items-center space-x-4">
@@ -76,6 +78,11 @@ const RestaurantDashboard: React.FC = () => {
     const [currentPage, setCurrentPage] = useState<DashboardPage>('orders');
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     
+    // Modal states
+    const [isEditVendorModalOpen, setIsEditVendorModalOpen] = useState(false);
+    const [isEditItemModalOpen, setIsEditItemModalOpen] = useState(false);
+    const [isMembershipModalOpen, setIsMembershipModalOpen] = useState(false);
+    
     // Image viewing state
     const [viewingImage, setViewingImage] = useState<{ url: string; name: string; description: string } | null>(null);
     const [uploadingImageFor, setUploadingImageFor] = useState<string | null>(null);
@@ -97,6 +104,32 @@ const RestaurantDashboard: React.FC = () => {
     const [newDiscount, setNewDiscount] = useState({ dayOfWeek: '1', percentage: '10', startTime: '16:00', endTime: '18:00' });
     const [newVoucher, setNewVoucher] = useState<Partial<Voucher>>({ title: '', discountAmount: 5000, validCategory: 'Food', description: '' });
     const [eventFormData, setEventFormData] = useState<Partial<RestaurantEvent>>({type: RestaurantEventType.LIVE_MUSIC, name: '', description: '', image: '', startTime: '', endTime: '', isActive: false});
+    const [voucherBanners, setVoucherBanners] = useState<string[]>([]); // Restaurant uploaded banner images
+    const [selectedBanner, setSelectedBanner] = useState<string | null>(null);
+    const [voucherBannerUrl, setVoucherBannerUrl] = useState('');
+    const [cateringFormData, setCateringFormData] = useState<CateringService>({
+        isActive: false,
+        eventTypes: [],
+        offSiteService: false,
+        onSiteService: false,
+        hasLiveMusic: false,
+        hasCakeService: false,
+        hasDecorations: false,
+        hasAVEquipment: false,
+        hasParking: false,
+        hasKidsArea: false
+    });
+    const [alcoholMenuData, setAlcoholMenuData] = useState<AlcoholMenu>({
+        isActive: false,
+        drinks: [],
+        requiresID: true
+    });
+    const [newDrink, setNewDrink] = useState<Partial<AlcoholDrink>>({
+        name: '',
+        type: 'beer',
+        price: 0,
+        image: ''
+    });
     const weekDays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
     const vendor = useMemo(() => vendors.find(v => v.id === LOGGED_IN_VENDOR_ID), [vendors]);
@@ -131,6 +164,23 @@ const RestaurantDashboard: React.FC = () => {
                 accountNumber: vendor.bankDetails?.accountNumber || ''
             });
             setWhatsAppFormData(vendor.whatsapp || '');
+            setCateringFormData(vendor.cateringService || {
+                isActive: false,
+                eventTypes: [],
+                offSiteService: false,
+                onSiteService: false,
+                hasLiveMusic: false,
+                hasCakeService: false,
+                hasDecorations: false,
+                hasAVEquipment: false,
+                hasParking: false,
+                hasKidsArea: false
+            });
+            setAlcoholMenuData(vendor.alcoholMenu || {
+                isActive: false,
+                drinks: [],
+                requiresID: true
+            });
         }
     }, [vendor]);
 
@@ -361,19 +411,19 @@ const RestaurantDashboard: React.FC = () => {
     ];
 
     return (
-        <div className="pb-16">
+        <div className="pb-16 bg-stone-900">
             {/* Header with Navigation Tabs */}
-            <div className="sticky top-0 z-40 bg-stone-900/95 backdrop-blur-lg border-b border-white/10 mb-6">
+            <div className="sticky top-0 z-40 bg-stone-900/95 backdrop-blur-lg border-b border-stone-700 mb-6 shadow-sm">
                 <div className="p-4">
                     <div className="flex items-center justify-between mb-4">
                         <div>
                             <h1 className="text-2xl font-bold text-white">{vendor.name}</h1>
                             <div className="flex items-center gap-3 mt-1">
-                                <div className="flex items-center gap-1 text-yellow-400">
+                                <div className="flex items-center gap-1 text-orange-500">
                                     <StarIcon className="w-4 h-4" />
                                     <span className="font-bold">{vendor.rating}</span>
                                 </div>
-                                <span className="text-stone-500">|</span>
+                                <span className="text-stone-700">|</span>
                                 <span className="text-sm text-stone-400">{(vendor.likes || 0).toLocaleString()} likes</span>
                             </div>
                         </div>
@@ -389,7 +439,7 @@ const RestaurantDashboard: React.FC = () => {
 
                     {/* Large Touch-Friendly Navigation Tabs */}
                     {isMenuOpen && (
-                        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mt-4">
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
                             <button
                                 onClick={() => { setCurrentPage('orders'); setIsMenuOpen(false); }}
                                 className={`p-4 rounded-xl font-bold text-lg transition-all ${
@@ -398,7 +448,7 @@ const RestaurantDashboard: React.FC = () => {
                                         : 'bg-white/5 text-stone-300 hover:bg-white/10'
                                 }`}
                             >
-                                📋 Orders
+                                📋 Orders POS
                             </button>
                             <button
                                 onClick={() => { setCurrentPage('menu'); setIsMenuOpen(false); }}
@@ -409,6 +459,86 @@ const RestaurantDashboard: React.FC = () => {
                                 }`}
                             >
                                 🍜 Menu
+                            </button>
+                            <button
+                                onClick={() => { setCurrentPage('loyalty'); setIsMenuOpen(false); }}
+                                className={`p-4 rounded-xl font-bold text-lg transition-all ${
+                                    currentPage === 'loyalty'
+                                        ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg scale-105'
+                                        : 'bg-white/5 text-stone-300 hover:bg-white/10'
+                                }`}
+                            >
+                                🎁 Loyalty
+                            </button>
+                            <button
+                                onClick={() => { setCurrentPage('analytics'); setIsMenuOpen(false); }}
+                                className={`p-4 rounded-xl font-bold text-lg transition-all ${
+                                    currentPage === 'analytics'
+                                        ? 'bg-gradient-to-r from-blue-600 to-cyan-600 text-white shadow-lg scale-105'
+                                        : 'bg-white/5 text-stone-300 hover:bg-white/10'
+                                }`}
+                            >
+                                📊 Analytics
+                            </button>
+                            <button
+                                onClick={() => { setCurrentPage('scheduled'); setIsMenuOpen(false); }}
+                                className={`p-4 rounded-xl font-bold text-lg transition-all ${
+                                    currentPage === 'scheduled'
+                                        ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-lg scale-105'
+                                        : 'bg-white/5 text-stone-300 hover:bg-white/10'
+                                }`}
+                            >
+                                ⏰ Pre-Orders
+                            </button>
+                            <button
+                                onClick={() => { setCurrentPage('events'); setIsMenuOpen(false); }}
+                                className={`p-4 rounded-xl font-bold text-lg transition-all ${
+                                    currentPage === 'events'
+                                        ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-lg scale-105'
+                                        : 'bg-white/5 text-stone-300 hover:bg-white/10'
+                                }`}
+                            >
+                                🎉 Events
+                            </button>
+                            <button
+                                onClick={() => { setCurrentPage('promotions'); setIsMenuOpen(false); }}
+                                className={`p-4 rounded-xl font-bold text-lg transition-all ${
+                                    currentPage === 'promotions'
+                                        ? 'bg-gradient-to-r from-red-500 to-pink-500 text-white shadow-lg scale-105'
+                                        : 'bg-white/5 text-stone-300 hover:bg-white/10'
+                                }`}
+                            >
+                                🏷️ Discounts
+                            </button>
+                            <button
+                                onClick={() => { setCurrentPage('vouchers'); setIsMenuOpen(false); }}
+                                className={`p-4 rounded-xl font-bold text-lg transition-all ${
+                                    currentPage === 'vouchers'
+                                        ? 'bg-gradient-to-r from-fuchsia-500 to-violet-500 text-white shadow-lg scale-105'
+                                        : 'bg-white/5 text-stone-300 hover:bg-white/10'
+                                }`}
+                            >
+                                🎟️ Vouchers
+                            </button>
+                            <button
+                                onClick={() => { setCurrentPage('catering'); setIsMenuOpen(false); }}
+                                className={`p-4 rounded-xl font-bold text-lg transition-all ${
+                                    currentPage === 'catering'
+                                        ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg scale-105'
+                                        : 'bg-white/5 text-stone-300 hover:bg-white/10'
+                                }`}
+                            >
+                                🎊 Catering
+                            </button>
+                            <button
+                                onClick={() => { setCurrentPage('alcohol'); setIsMenuOpen(false); }}
+                                className={`p-4 rounded-xl font-bold text-lg transition-all ${
+                                    currentPage === 'alcohol'
+                                        ? 'bg-gradient-to-r from-red-600 to-orange-600 text-white shadow-lg scale-105'
+                                        : 'bg-white/5 text-stone-300 hover:bg-white/10'
+                                }`}
+                            >
+                                🍷 Alcohol (21+)
                             </button>
                             <button
                                 onClick={() => { setCurrentPage('profile'); setIsMenuOpen(false); }}
@@ -424,7 +554,7 @@ const RestaurantDashboard: React.FC = () => {
                                 onClick={() => { setCurrentPage('bank'); setIsMenuOpen(false); }}
                                 className={`p-4 rounded-xl font-bold text-lg transition-all ${
                                     currentPage === 'bank'
-                                        ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-lg scale-105'
+                                        ? 'bg-gradient-to-r from-teal-500 to-cyan-500 text-white shadow-lg scale-105'
                                         : 'bg-white/5 text-stone-300 hover:bg-white/10'
                                 }`}
                             >
@@ -458,14 +588,203 @@ const RestaurantDashboard: React.FC = () => {
             {/* Content Sections - Conditionally Rendered */}
             <div className="px-4">
                 {currentPage === 'orders' && (
-                    <div>
-                        <OrderManagement vendorId={LOGGED_IN_VENDOR_ID} />
+                    <div className="space-y-6">
+                        {/* Feature Explanation */}
+                        <div className="bg-gradient-to-r from-purple-500/20 to-pink-500/20 border-2 border-purple-500/30 rounded-2xl p-6">
+                            <h2 className="text-2xl font-bold text-white mb-3 flex items-center gap-3">
+                                <span className="text-3xl">📋</span>
+                                Orders & POS System
+                            </h2>
+                            <p className="text-stone-300 text-lg mb-4">
+                                Real-time order management system. Accept, prepare, and track customer orders from start to delivery.
+                            </p>
+                            <div className="grid md:grid-cols-3 gap-4 text-sm">
+                                <div className="bg-white/10 rounded-lg p-3">
+                                    <div className="font-bold text-green-400 mb-1">✓ Accept Orders</div>
+                                    <div className="text-stone-400">Confirm or reject incoming orders instantly</div>
+                                </div>
+                                <div className="bg-white/10 rounded-lg p-3">
+                                    <div className="font-bold text-yellow-400 mb-1">👨‍🍳 Track Progress</div>
+                                    <div className="text-stone-400">Update status: Preparing → Ready → Delivered</div>
+                                </div>
+                                <div className="bg-white/10 rounded-lg p-3">
+                                    <div className="font-bold text-blue-400 mb-1">📞 Contact</div>
+                                    <div className="text-stone-400">Message customers via WhatsApp directly</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <RestaurantPOS 
+                            vendorId={vendor.id}
+                            orders={[]} 
+                            onAcceptOrder={() => {}} 
+                            onRejectOrder={() => {}} 
+                            onUpdateStatus={() => {}}
+                            onPrintReceipt={() => {}}
+                        />
+                    </div>
+                )}
+
+                {currentPage === 'loyalty' && (
+                    <div className="space-y-6">
+                        {/* Feature Explanation */}
+                        <div className="bg-gradient-to-r from-purple-600/20 to-pink-600/20 border-2 border-purple-600/30 rounded-2xl p-6">
+                            <h2 className="text-2xl font-bold text-white mb-3 flex items-center gap-3">
+                                <span className="text-3xl">🎁</span>
+                                Loyalty Program
+                            </h2>
+                            <p className="text-stone-300 text-lg mb-4">
+                                Reward your repeat customers with points and special offers. Customers earn points with each order and unlock rewards when they reach certain milestones.
+                            </p>
+                            <div className="grid md:grid-cols-3 gap-4 text-sm">
+                                <div className="bg-white/10 rounded-lg p-3">
+                                    <div className="font-bold text-purple-400 mb-1">📊 Points Per Order</div>
+                                    <div className="text-stone-400">Set how many points customers earn per order</div>
+                                </div>
+                                <div className="bg-white/10 rounded-lg p-3">
+                                    <div className="font-bold text-orange-400 mb-1">🏆 Reward Tiers</div>
+                                    <div className="text-stone-400">Create discounts (10% off) or free items</div>
+                                </div>
+                                <div className="bg-white/10 rounded-lg p-3">
+                                    <div className="font-bold text-green-400 mb-1">📅 Monthly Reset</div>
+                                    <div className="text-stone-400">Points reset each month to encourage orders</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <LoyaltyProgramManager 
+                            vendor={vendor}
+                            menuItems={menuItems}
+                            onSave={(config) => updateVendorDetails(vendor.id, { loyaltyProgram: config })}
+                        />
+                    </div>
+                )}
+
+                {currentPage === 'analytics' && (
+                    <div className="space-y-6">
+                        {/* Feature Explanation */}
+                        <div className="bg-gradient-to-r from-blue-600/20 to-cyan-600/20 border-2 border-blue-600/30 rounded-2xl p-6">
+                            <h2 className="text-2xl font-bold text-white mb-3 flex items-center gap-3">
+                                <span className="text-3xl">📊</span>
+                                Performance Analytics
+                            </h2>
+                            <p className="text-stone-300 text-lg mb-4">
+                                Track your restaurant's performance with detailed analytics. See what's selling, when customers order, and how you're doing overall.
+                            </p>
+                            <div className="grid md:grid-cols-4 gap-4 text-sm">
+                                <div className="bg-white/10 rounded-lg p-3">
+                                    <div className="font-bold text-green-400 mb-1">💰 Revenue</div>
+                                    <div className="text-stone-400">Total sales by period</div>
+                                </div>
+                                <div className="bg-white/10 rounded-lg p-3">
+                                    <div className="font-bold text-blue-400 mb-1">📦 Orders</div>
+                                    <div className="text-stone-400">Completed vs cancelled</div>
+                                </div>
+                                <div className="bg-white/10 rounded-lg p-3">
+                                    <div className="font-bold text-yellow-400 mb-1">🔥 Popular Items</div>
+                                    <div className="text-stone-400">Best-selling dishes</div>
+                                </div>
+                                <div className="bg-white/10 rounded-lg p-3">
+                                    <div className="font-bold text-purple-400 mb-1">⏰ Peak Hours</div>
+                                    <div className="text-stone-400">Busiest order times</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <RestaurantAnalyticsDashboard 
+                            vendorId={vendor.id}
+                            vendorName={vendor.name}
+                            analytics={{
+                                vendorId: vendor.id,
+                                period: 'all',
+                                totalOrders: orders.length,
+                                totalRevenue: 0,
+                                averageOrderValue: 0,
+                                completedOrders: 0,
+                                cancelledOrders: 0,
+                                averageRating: vendor.rating,
+                                totalReviews: 0,
+                                popularItems: [],
+                                peakHours: [],
+                                recentReviews: [],
+                                customerRetention: 0,
+                                averagePreparationTime: 0
+                            }}
+                        />
+                    </div>
+                )}
+
+                {currentPage === 'scheduled' && (
+                    <div className="space-y-6">
+                        {/* Feature Explanation */}
+                        <div className="bg-gradient-to-r from-indigo-500/20 to-purple-500/20 border-2 border-indigo-500/30 rounded-2xl p-6">
+                            <h2 className="text-2xl font-bold text-white mb-3 flex items-center gap-3">
+                                <span className="text-3xl">⏰</span>
+                                Pre-Order Scheduling
+                            </h2>
+                            <p className="text-stone-300 text-lg mb-4">
+                                Customers can schedule orders for future delivery (minimum 2 hours ahead). You confirm availability, driver gets pre-booked, and order is guaranteed on-time.
+                            </p>
+                            <div className="grid md:grid-cols-4 gap-4 text-sm">
+                                <div className="bg-white/10 rounded-lg p-3">
+                                    <div className="font-bold text-yellow-400 mb-1">⏳ Pending</div>
+                                    <div className="text-stone-400">Confirm or reject scheduled orders</div>
+                                </div>
+                                <div className="bg-white/10 rounded-lg p-3">
+                                    <div className="font-bold text-green-400 mb-1">✓ Confirmed</div>
+                                    <div className="text-stone-400">Driver auto-booked 1hr before</div>
+                                </div>
+                                <div className="bg-white/10 rounded-lg p-3">
+                                    <div className="font-bold text-blue-400 mb-1">🏍️ Driver Ready</div>
+                                    <div className="text-stone-400">Delivery guaranteed on-time</div>
+                                </div>
+                                <div className="bg-white/10 rounded-lg p-3">
+                                    <div className="font-bold text-purple-400 mb-1">📅 Plan Ahead</div>
+                                    <div className="text-stone-400">Perfect for events & catering</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="bg-white/5 border border-white/10 rounded-xl p-8 text-center">
+                            <div className="text-6xl mb-4">⏰</div>
+                            <h3 className="text-2xl font-bold text-white mb-2">No Scheduled Orders Yet</h3>
+                            <p className="text-stone-400">Pre-orders will appear here when customers schedule future deliveries</p>
+                        </div>
                     </div>
                 )}
                 
                 {currentPage === 'menu' && (
                     <div className="space-y-6">
-                        <h2 className="text-3xl font-bold text-white mb-4">🍜 Menu Management</h2>
+                        {/* Feature Explanation */}
+                        <div className="bg-gradient-to-r from-orange-500/20 to-amber-500/20 border-2 border-orange-500/30 rounded-2xl p-6">
+                            <h2 className="text-2xl font-bold text-white mb-3 flex items-center gap-3">
+                                <span className="text-3xl">🍜</span>
+                                Menu Management
+                            </h2>
+                            <p className="text-stone-300 text-lg mb-4">
+                                Add, edit, and manage your menu items. Upload photos, set prices, toggle availability, and organize with tags.
+                            </p>
+                            <div className="grid md:grid-cols-4 gap-4 text-sm">
+                                <div className="bg-white/10 rounded-lg p-3">
+                                    <div className="font-bold text-green-400 mb-1">✓ Availability</div>
+                                    <div className="text-stone-400">Mark items as sold out instantly</div>
+                                </div>
+                                <div className="bg-white/10 rounded-lg p-3">
+                                    <div className="font-bold text-blue-400 mb-1">📸 Photos</div>
+                                    <div className="text-stone-400">Upload high-quality food images</div>
+                                </div>
+                                <div className="bg-white/10 rounded-lg p-3">
+                                    <div className="font-bold text-yellow-400 mb-1">💰 Pricing</div>
+                                    <div className="text-stone-400">Update prices anytime</div>
+                                </div>
+                                <div className="bg-white/10 rounded-lg p-3">
+                                    <div className="font-bold text-purple-400 mb-1">🏷️ Tags</div>
+                                    <div className="text-stone-400">Organize with spicy, vegan, etc.</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <h2 className="text-3xl font-bold text-white mb-4">🍜 Menu Items</h2>
                         <div className="space-y-4">
                             {menuItems.map(item => (
                                 <div key={item.id} className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-xl p-6">
@@ -534,7 +853,7 @@ const RestaurantDashboard: React.FC = () => {
                                                         placeholder="Paste image URL here..."
                                                         value={imageUrl}
                                                         onChange={(e) => setImageUrl(e.target.value)}
-                                                        className="w-full p-3 bg-stone-900 border border-stone-700 rounded-lg text-white text-lg"
+                                                        className="w-full p-3 bg-white border border-stone-700 rounded-lg text-white text-lg"
                                                         autoFocus
                                                     />
                                                     <div className="flex gap-2">
@@ -576,7 +895,32 @@ const RestaurantDashboard: React.FC = () => {
                 
                 {currentPage === 'events' && (
                     <div className="space-y-6">
-                        <h2 className="text-3xl font-bold text-white mb-4">🎉 Restaurant Events</h2>
+                        {/* Feature Explanation */}
+                        <div className="bg-gradient-to-r from-green-500/20 to-emerald-500/20 border-2 border-green-500/30 rounded-2xl p-6">
+                            <h2 className="text-2xl font-bold text-white mb-3 flex items-center gap-3">
+                                <span className="text-3xl">🎉</span>
+                                Restaurant Events
+                            </h2>
+                            <p className="text-stone-300 text-lg mb-4">
+                                Promote special events happening at your restaurant. When active, your restaurant card shows with a green glow on the main feed, attracting more customers.
+                            </p>
+                            <div className="grid md:grid-cols-3 gap-4 text-sm">
+                                <div className="bg-white/10 rounded-lg p-3">
+                                    <div className="font-bold text-green-400 mb-1">🎵 Live Music</div>
+                                    <div className="text-stone-400">Showcase bands & performers</div>
+                                </div>
+                                <div className="bg-white/10 rounded-lg p-3">
+                                    <div className="font-bold text-orange-400 mb-1">🍹 Happy Hour</div>
+                                    <div className="text-stone-400">Special drink & food pricing</div>
+                                </div>
+                                <div className="bg-white/10 rounded-lg p-3">
+                                    <div className="font-bold text-purple-400 mb-1">✨ Green Glow</div>
+                                    <div className="text-stone-400">Stand out in the feed when active</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <h2 className="text-3xl font-bold text-white mb-4">🎉 Your Events</h2>
                         
                         {/* Current Active Event */}
                         {vendor.currentEvent && (
@@ -590,7 +934,7 @@ const RestaurantDashboard: React.FC = () => {
                                                 type="checkbox"
                                                 checked={vendor.currentEvent.isActive}
                                                 onChange={handleToggleEvent}
-                                                className="w-5 h-5 text-green-600 bg-stone-900 border-stone-700 rounded focus:ring-green-500"
+                                                className="w-5 h-5 text-green-600 bg-white border-stone-700 rounded focus:ring-green-500"
                                             />
                                             <span className={`text-sm font-bold ${vendor.currentEvent.isActive ? 'text-green-400' : 'text-stone-500'}`}>
                                                 {vendor.currentEvent.isActive ? '✓ Active (Green Glow)' : 'Inactive'}
@@ -641,7 +985,7 @@ const RestaurantDashboard: React.FC = () => {
                                     <select
                                         value={eventFormData.type}
                                         onChange={(e) => setEventFormData(prev => ({ ...prev, type: e.target.value as RestaurantEventType }))}
-                                        className="w-full p-4 bg-stone-900 border border-stone-700 rounded-lg text-white text-lg"
+                                        className="w-full p-4 bg-white border border-stone-700 rounded-lg text-white text-lg"
                                     >
                                         {Object.values(RestaurantEventType).map(type => (
                                             <option key={type} value={type}>{type}</option>
@@ -656,7 +1000,7 @@ const RestaurantDashboard: React.FC = () => {
                                         value={eventFormData.name}
                                         onChange={(e) => setEventFormData(prev => ({ ...prev, name: e.target.value }))}
                                         placeholder="e.g., Friday Night Live Jazz"
-                                        className="w-full p-4 bg-stone-900 border border-stone-700 rounded-lg text-white text-lg"
+                                        className="w-full p-4 bg-white border border-stone-700 rounded-lg text-white text-lg"
                                     />
                                 </div>
 
@@ -667,7 +1011,7 @@ const RestaurantDashboard: React.FC = () => {
                                         onChange={(e) => setEventFormData(prev => ({ ...prev, description: e.target.value }))}
                                         placeholder="Describe your event..."
                                         rows={3}
-                                        className="w-full p-4 bg-stone-900 border border-stone-700 rounded-lg text-white text-lg"
+                                        className="w-full p-4 bg-white border border-stone-700 rounded-lg text-white text-lg"
                                     />
                                 </div>
 
@@ -678,7 +1022,7 @@ const RestaurantDashboard: React.FC = () => {
                                         value={eventFormData.image}
                                         onChange={(e) => setEventFormData(prev => ({ ...prev, image: e.target.value }))}
                                         placeholder="https://example.com/event-poster.jpg"
-                                        className="w-full p-4 bg-stone-900 border border-stone-700 rounded-lg text-white text-lg"
+                                        className="w-full p-4 bg-white border border-stone-700 rounded-lg text-white text-lg"
                                     />
                                     {eventFormData.image && (
                                         <img src={eventFormData.image} alt="Preview" className="mt-3 w-full h-48 object-cover rounded-lg" />
@@ -692,7 +1036,7 @@ const RestaurantDashboard: React.FC = () => {
                                             type="datetime-local"
                                             value={eventFormData.startTime ? new Date(eventFormData.startTime).toISOString().slice(0, 16) : ''}
                                             onChange={(e) => setEventFormData(prev => ({ ...prev, startTime: new Date(e.target.value).toISOString() }))}
-                                            className="w-full p-4 bg-stone-900 border border-stone-700 rounded-lg text-white"
+                                            className="w-full p-4 bg-white border border-stone-700 rounded-lg text-white"
                                         />
                                     </div>
                                     <div>
@@ -701,7 +1045,7 @@ const RestaurantDashboard: React.FC = () => {
                                             type="datetime-local"
                                             value={eventFormData.endTime ? new Date(eventFormData.endTime).toISOString().slice(0, 16) : ''}
                                             onChange={(e) => setEventFormData(prev => ({ ...prev, endTime: new Date(e.target.value).toISOString() }))}
-                                            className="w-full p-4 bg-stone-900 border border-stone-700 rounded-lg text-white"
+                                            className="w-full p-4 bg-white border border-stone-700 rounded-lg text-white"
                                         />
                                     </div>
                                 </div>
@@ -712,7 +1056,7 @@ const RestaurantDashboard: React.FC = () => {
                                             type="checkbox"
                                             checked={eventFormData.isActive || false}
                                             onChange={(e) => setEventFormData(prev => ({ ...prev, isActive: e.target.checked }))}
-                                            className="w-5 h-5 text-green-600 bg-stone-900 border-stone-700 rounded focus:ring-green-500"
+                                            className="w-5 h-5 text-green-600 bg-white border-stone-700 rounded focus:ring-green-500"
                                         />
                                         <span className="text-sm font-medium text-stone-300">Activate event immediately (show green glow)</span>
                                     </label>
@@ -741,7 +1085,36 @@ const RestaurantDashboard: React.FC = () => {
                 
                 {currentPage === 'profile' && (
                     <div className="space-y-6">
-                        <h2 className="text-3xl font-bold text-white mb-4">📝 Restaurant Profile</h2>
+                        {/* Feature Explanation */}
+                        <div className="bg-gradient-to-r from-blue-500/20 to-cyan-500/20 border-2 border-blue-500/30 rounded-2xl p-6">
+                            <h2 className="text-2xl font-bold text-white mb-3 flex items-center gap-3">
+                                <span className="text-3xl">📝</span>
+                                Restaurant Profile
+                            </h2>
+                            <p className="text-stone-300 text-lg mb-4">
+                                Manage your restaurant's public profile. Update contact information, location, social media links, and operating hours.
+                            </p>
+                            <div className="grid md:grid-cols-4 gap-4 text-sm">
+                                <div className="bg-white/10 rounded-lg p-3">
+                                    <div className="font-bold text-blue-400 mb-1">📍 Location</div>
+                                    <div className="text-stone-400">Address & map visibility</div>
+                                </div>
+                                <div className="bg-white/10 rounded-lg p-3">
+                                    <div className="font-bold text-green-400 mb-1">📞 Contact</div>
+                                    <div className="text-stone-400">WhatsApp for customer chat</div>
+                                </div>
+                                <div className="bg-white/10 rounded-lg p-3">
+                                    <div className="font-bold text-purple-400 mb-1">🌐 Social Media</div>
+                                    <div className="text-stone-400">Link Instagram, Facebook, etc.</div>
+                                </div>
+                                <div className="bg-white/10 rounded-lg p-3">
+                                    <div className="font-bold text-yellow-400 mb-1">⏰ Hours</div>
+                                    <div className="text-stone-400">Operating schedule</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <h2 className="text-3xl font-bold text-white mb-4">📝 Profile Information</h2>
                         <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-xl p-8">
                             <div className="space-y-6">
                                 <div>
@@ -750,7 +1123,7 @@ const RestaurantDashboard: React.FC = () => {
                                         type="text"
                                         value={vendor.name}
                                         disabled
-                                        className="w-full p-4 bg-stone-900 border border-stone-700 rounded-lg text-white text-lg font-bold"
+                                        className="w-full p-4 bg-white border border-stone-700 rounded-lg text-white text-lg font-bold"
                                     />
                                 </div>
                                 <div>
@@ -759,7 +1132,7 @@ const RestaurantDashboard: React.FC = () => {
                                         type="text"
                                         value={editFormData.cuisine || vendor.cuisine || ''}
                                         onChange={(e) => setEditFormData(prev => ({ ...prev, cuisine: e.target.value }))}
-                                        className="w-full p-4 bg-stone-900 border border-stone-700 rounded-lg text-white text-lg"
+                                        className="w-full p-4 bg-white border border-stone-700 rounded-lg text-white text-lg"
                                         placeholder="e.g., Indonesian, Western, Chinese"
                                     />
                                 </div>
@@ -769,7 +1142,7 @@ const RestaurantDashboard: React.FC = () => {
                                         value={editFormData.bio || vendor.bio || ''}
                                         onChange={(e) => setEditFormData(prev => ({ ...prev, bio: e.target.value }))}
                                         rows={4}
-                                        className="w-full p-4 bg-stone-900 border border-stone-700 rounded-lg text-white text-lg"
+                                        className="w-full p-4 bg-white border border-stone-700 rounded-lg text-white text-lg"
                                         placeholder="Tell customers about your restaurant..."
                                     />
                                 </div>
@@ -798,7 +1171,7 @@ const RestaurantDashboard: React.FC = () => {
                                                         }
                                                     }));
                                                 }}
-                                                className="w-5 h-5 text-orange-600 bg-stone-900 border-stone-700 rounded focus:ring-orange-500"
+                                                className="w-5 h-5 text-orange-600 bg-white border-stone-700 rounded focus:ring-orange-500"
                                             />
                                             <span className="text-sm font-medium text-stone-300">Active</span>
                                         </label>
@@ -817,7 +1190,7 @@ const RestaurantDashboard: React.FC = () => {
                                                         ...prev,
                                                         dineInPromotion: { ...prev.dineInPromotion!, percentage: parseInt(e.target.value) }
                                                     }))}
-                                                    className="w-full p-3 bg-stone-900 border border-stone-700 rounded-lg text-white"
+                                                    className="w-full p-3 bg-white border border-stone-700 rounded-lg text-white"
                                                     disabled={!editFormData.dineInPromotion?.isActive}
                                                 >
                                                     <option value="5">5% Off</option>
@@ -839,7 +1212,7 @@ const RestaurantDashboard: React.FC = () => {
                                                             menuDiscount: parseInt(e.target.value) || undefined 
                                                         }
                                                     }))}
-                                                    className="w-full p-3 bg-stone-900 border border-stone-700 rounded-lg text-white"
+                                                    className="w-full p-3 bg-white border border-stone-700 rounded-lg text-white"
                                                     disabled={!editFormData.dineInPromotion?.isActive}
                                                 >
                                                     <option value="0">No Menu Discount</option>
@@ -868,7 +1241,7 @@ const RestaurantDashboard: React.FC = () => {
                                                             }
                                                         }));
                                                     }}
-                                                    className="w-full p-3 bg-stone-900 border border-stone-700 rounded-lg text-white"
+                                                    className="w-full p-3 bg-white border border-stone-700 rounded-lg text-white"
                                                     disabled={!editFormData.dineInPromotion?.isActive}
                                                 >
                                                     <option value="always">Always On</option>
@@ -892,7 +1265,7 @@ const RestaurantDashboard: React.FC = () => {
                                                 }))}
                                                 placeholder="e.g., DINE20, LUNCH15"
                                                 maxLength={12}
-                                                className="w-full p-3 bg-stone-900 border border-stone-700 rounded-lg text-white font-mono text-lg uppercase"
+                                                className="w-full p-3 bg-white border border-stone-700 rounded-lg text-white font-mono text-lg uppercase"
                                                 disabled={!editFormData.dineInPromotion?.isActive}
                                             />
                                             <p className="text-xs text-stone-500 mt-1">Make it memorable and easy to show (max 12 characters)</p>
@@ -955,7 +1328,7 @@ const RestaurantDashboard: React.FC = () => {
                                         type="text"
                                         value={editFormData.youtubeStreamId || vendor.youtubeStreamId || ''}
                                         onChange={(e) => setEditFormData(prev => ({ ...prev, youtubeStreamId: e.target.value }))}
-                                        className="w-full p-4 bg-stone-900 border border-stone-700 rounded-lg text-white text-lg font-mono"
+                                        className="w-full p-4 bg-white border border-stone-700 rounded-lg text-white text-lg font-mono"
                                         placeholder="e.g., jfKfPfyJRdk"
                                     />
                                     <div className="mt-3 bg-black/30 rounded-lg p-4">
@@ -991,7 +1364,32 @@ const RestaurantDashboard: React.FC = () => {
                 
                 {currentPage === 'promotions' && (
                     <div className="space-y-6">
-                        <h2 className="text-3xl font-bold text-white mb-4">🎁 Promotions & Discounts</h2>
+                        {/* Feature Explanation */}
+                        <div className="bg-gradient-to-r from-red-500/20 to-pink-500/20 border-2 border-red-500/30 rounded-2xl p-6">
+                            <h2 className="text-2xl font-bold text-white mb-3 flex items-center gap-3">
+                                <span className="text-3xl">🏷️</span>
+                                Promotions & Discounts
+                            </h2>
+                            <p className="text-stone-300 text-lg mb-4">
+                                Create time-based discounts and vouchers to attract customers. Set happy hours, weekday specials, or special occasion deals.
+                            </p>
+                            <div className="grid md:grid-cols-3 gap-4 text-sm">
+                                <div className="bg-white/10 rounded-lg p-3">
+                                    <div className="font-bold text-orange-400 mb-1">⏰ Time-Based</div>
+                                    <div className="text-stone-400">Discounts for specific days & hours</div>
+                                </div>
+                                <div className="bg-white/10 rounded-lg p-3">
+                                    <div className="font-bold text-green-400 mb-1">🎟️ Vouchers</div>
+                                    <div className="text-stone-400">Special discount codes for customers</div>
+                                </div>
+                                <div className="bg-white/10 rounded-lg p-3">
+                                    <div className="font-bold text-purple-400 mb-1">📈 Boost Sales</div>
+                                    <div className="text-stone-400">Fill slow hours with deals</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <h2 className="text-3xl font-bold text-white mb-4">🏷️ Your Promotions</h2>
                         
                         {/* Dine-In Promotion Card */}
                         <div className="bg-gradient-to-r from-orange-500/10 to-orange-600/10 border-2 border-orange-500/30 rounded-xl p-6">
@@ -1017,7 +1415,7 @@ const RestaurantDashboard: React.FC = () => {
                                                 }
                                             }));
                                         }}
-                                        className="w-5 h-5 text-orange-600 bg-stone-900 border-stone-700 rounded focus:ring-orange-500"
+                                        className="w-5 h-5 text-orange-600 bg-white border-stone-700 rounded focus:ring-orange-500"
                                     />
                                     <span className={`text-sm font-bold ${editFormData.dineInPromotion?.isActive ? 'text-orange-400' : 'text-stone-500'}`}>
                                         {editFormData.dineInPromotion?.isActive ? '✓ Active' : 'Inactive'}
@@ -1035,7 +1433,7 @@ const RestaurantDashboard: React.FC = () => {
                                                 ...prev,
                                                 dineInPromotion: { ...prev.dineInPromotion!, percentage: parseInt(e.target.value) }
                                             }))}
-                                            className="w-full p-3 bg-stone-900 border border-stone-700 rounded-lg text-white"
+                                            className="w-full p-3 bg-white border border-stone-700 rounded-lg text-white"
                                             disabled={!editFormData.dineInPromotion?.isActive}
                                         >
                                             <option value="5">5% Off</option>
@@ -1057,7 +1455,7 @@ const RestaurantDashboard: React.FC = () => {
                                                     menuDiscount: parseInt(e.target.value) || undefined 
                                                 }
                                             }))}
-                                            className="w-full p-3 bg-stone-900 border border-stone-700 rounded-lg text-white"
+                                            className="w-full p-3 bg-white border border-stone-700 rounded-lg text-white"
                                             disabled={!editFormData.dineInPromotion?.isActive}
                                         >
                                             <option value="0">No Menu Discount</option>
@@ -1086,7 +1484,7 @@ const RestaurantDashboard: React.FC = () => {
                                                     }
                                                 }));
                                             }}
-                                            className="w-full p-3 bg-stone-900 border border-stone-700 rounded-lg text-white"
+                                            className="w-full p-3 bg-white border border-stone-700 rounded-lg text-white"
                                             disabled={!editFormData.dineInPromotion?.isActive}
                                         >
                                             <option value="always">Always On</option>
@@ -1108,7 +1506,7 @@ const RestaurantDashboard: React.FC = () => {
                                                     dineInPromotion: { ...prev.dineInPromotion!, code: value }
                                                 }));
                                             }}
-                                            className="w-full p-3 bg-stone-900 border border-stone-700 rounded-lg text-white font-mono"
+                                            className="w-full p-3 bg-white border border-stone-700 rounded-lg text-white font-mono"
                                             placeholder="e.g., DINE15"
                                             maxLength={10}
                                             disabled={!editFormData.dineInPromotion?.isActive}
@@ -1197,9 +1595,768 @@ const RestaurantDashboard: React.FC = () => {
                     </div>
                 )}
                 
+                {currentPage === 'vouchers' && (
+                    <div className="space-y-6">
+                        {/* Feature Explanation */}
+                        <div className="bg-gradient-to-r from-fuchsia-500/20 to-violet-500/20 border-2 border-fuchsia-500/30 rounded-2xl p-6">
+                            <h2 className="text-2xl font-bold text-white mb-3 flex items-center gap-3">
+                                <span className="text-3xl">🎟️</span>
+                                Voucher Banners for Customer Profile
+                            </h2>
+                            <p className="text-stone-300 text-lg mb-4">
+                                Upload promotional banners that appear on the back of your restaurant profile card (flip side). Customers see these vouchers when they flip your profile.
+                            </p>
+                            <div className="grid md:grid-cols-3 gap-4 text-sm">
+                                <div className="bg-white/10 rounded-lg p-3">
+                                    <div className="font-bold text-pink-400 mb-1">🎨 Custom Banners</div>
+                                    <div className="text-stone-400">Upload your promotional designs</div>
+                                </div>
+                                <div className="bg-white/10 rounded-lg p-3">
+                                    <div className="font-bold text-purple-400 mb-1">🔄 Flip Card Display</div>
+                                    <div className="text-stone-400">Shows on back of profile card</div>
+                                </div>
+                                <div className="bg-white/10 rounded-lg p-3">
+                                    <div className="font-bold text-violet-400 mb-1">🎯 Customer Attraction</div>
+                                    <div className="text-stone-400">Eye-catching deals & offers</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <h2 className="text-3xl font-bold text-white mb-4">🎟️ Manage Voucher Banners</h2>
+
+                        {/* Upload New Banner */}
+                        <div className="bg-gradient-to-br from-fuchsia-500/10 to-violet-500/10 border-2 border-fuchsia-500/30 rounded-xl p-6">
+                            <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                                📤 Upload New Voucher Banner
+                            </h3>
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-stone-400 mb-2">
+                                        Banner Image URL
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={voucherBannerUrl}
+                                        onChange={(e) => setVoucherBannerUrl(e.target.value)}
+                                        placeholder="https://example.com/voucher-banner.jpg"
+                                        className="w-full p-3 bg-white border border-stone-700 rounded-lg text-white focus:outline-none focus:border-fuchsia-500"
+                                    />
+                                    <p className="text-xs text-stone-500 mt-1">
+                                        💡 Recommended size: 800x400px (2:1 ratio) for best display
+                                    </p>
+                                </div>
+                                <button
+                                    onClick={() => {
+                                        if (voucherBannerUrl.trim()) {
+                                            setVoucherBanners([...voucherBanners, voucherBannerUrl]);
+                                            setVoucherBannerUrl('');
+                                            alert('Voucher banner added! Don\'t forget to save changes.');
+                                        }
+                                    }}
+                                    className="w-full p-3 bg-gradient-to-r from-fuchsia-500 to-violet-500 text-white font-bold rounded-lg hover:from-fuchsia-600 hover:to-violet-600 transition-all"
+                                >
+                                    ➕ Add Banner
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Banner Gallery */}
+                        <div className="bg-stone-800/50 rounded-xl p-6 border border-stone-700">
+                            <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                                🖼️ Your Voucher Banners ({voucherBanners.length})
+                            </h3>
+                            {voucherBanners.length === 0 ? (
+                                <div className="text-center py-12 text-stone-400">
+                                    <div className="text-6xl mb-4">🎟️</div>
+                                    <p className="text-lg">No voucher banners yet</p>
+                                    <p className="text-sm mt-2">Upload promotional banners to appear on your profile flip card</p>
+                                </div>
+                            ) : (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    {voucherBanners.map((banner, index) => (
+                                        <div key={index} className="relative group">
+                                            <div className={`border-4 rounded-xl overflow-hidden transition-all ${
+                                                selectedBanner === banner 
+                                                    ? 'border-fuchsia-500 shadow-lg shadow-fuchsia-500/50' 
+                                                    : 'border-stone-700 hover:border-stone-600'
+                                            }`}>
+                                                <img 
+                                                    src={banner} 
+                                                    alt={`Voucher Banner ${index + 1}`}
+                                                    className="w-full h-48 object-cover cursor-pointer"
+                                                    onClick={() => setSelectedBanner(banner === selectedBanner ? null : banner)}
+                                                />
+                                            </div>
+                                            <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <button
+                                                    onClick={() => {
+                                                        if (confirm('Remove this voucher banner?')) {
+                                                            setVoucherBanners(voucherBanners.filter((_, i) => i !== index));
+                                                            if (selectedBanner === banner) setSelectedBanner(null);
+                                                        }
+                                                    }}
+                                                    className="p-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-all shadow-lg"
+                                                >
+                                                    🗑️
+                                                </button>
+                                            </div>
+                                            {selectedBanner === banner && (
+                                                <div className="absolute bottom-2 left-2 bg-fuchsia-500 text-white px-3 py-1 rounded-full text-xs font-bold">
+                                                    ✓ Selected for Display
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Preview Card */}
+                        {selectedBanner && (
+                            <div className="bg-gradient-to-br from-fuchsia-500/10 to-violet-500/10 border-2 border-fuchsia-500/30 rounded-xl p-6">
+                                <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                                    👁️ Preview: How It Appears on Profile Flip Card
+                                </h3>
+                                <div className="bg-white rounded-xl p-4 max-w-md mx-auto">
+                                    <div className="text-center mb-3 text-stone-400 text-sm">
+                                        Customer flips your profile card 🔄
+                                    </div>
+                                    <img 
+                                        src={selectedBanner} 
+                                        alt="Selected Voucher Banner"
+                                        className="w-full rounded-lg shadow-2xl"
+                                    />
+                                    <div className="text-center mt-3 text-stone-400 text-xs">
+                                        This banner appears on the back of your restaurant profile card
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Info Cards */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="bg-stone-800/50 rounded-xl p-4 border border-stone-700">
+                                <h4 className="font-bold text-white mb-2">💡 How It Works</h4>
+                                <ul className="text-sm text-stone-400 space-y-1">
+                                    <li>• Upload promotional banner images</li>
+                                    <li>• Select which banner to display</li>
+                                    <li>• Customers see it when flipping your profile</li>
+                                    <li>• Update banners anytime with new offers</li>
+                                </ul>
+                            </div>
+                            <div className="bg-stone-800/50 rounded-xl p-4 border border-stone-700">
+                                <h4 className="font-bold text-white mb-2">🎨 Design Tips</h4>
+                                <ul className="text-sm text-stone-400 space-y-1">
+                                    <li>• Use 800x400px size (2:1 ratio)</li>
+                                    <li>• Include clear text and offers</li>
+                                    <li>• Bright colors catch attention</li>
+                                    <li>• Add expiry dates for urgency</li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <button
+                            onClick={() => {
+                                // In real app, save voucherBanners to vendor profile
+                                alert(`Voucher banners saved! ${voucherBanners.length} banner(s) configured.`);
+                            }}
+                            className="w-full p-4 bg-gradient-to-r from-fuchsia-500 to-violet-500 text-white font-bold text-xl rounded-xl hover:from-fuchsia-600 hover:to-violet-600 transition-all shadow-lg"
+                        >
+                            💾 Save Voucher Banners
+                        </button>
+                    </div>
+                )}
+                
+                {currentPage === 'catering' && (
+                    <div className="space-y-6">
+                        {/* Feature Explanation */}
+                        <div className="bg-gradient-to-r from-purple-500/20 to-pink-500/20 border-2 border-purple-500/30 rounded-2xl p-6">
+                            <h2 className="text-2xl font-bold text-white mb-3 flex items-center gap-3">
+                                <span className="text-3xl">🎊</span>
+                                Catering & Event Services
+                            </h2>
+                            <p className="text-stone-300 text-lg mb-4">
+                                Offer catering services for special events like weddings, birthdays, and corporate gatherings. Configure your venue facilities and services.
+                            </p>
+                            <div className="grid md:grid-cols-3 gap-4 text-sm">
+                                <div className="bg-white/10 rounded-lg p-3">
+                                    <div className="font-bold text-purple-400 mb-1">🚚 Off-Site Catering</div>
+                                    <div className="text-stone-400">Deliver to customer locations</div>
+                                </div>
+                                <div className="bg-white/10 rounded-lg p-3">
+                                    <div className="font-bold text-pink-400 mb-1">🏛️ Venue Hosting</div>
+                                    <div className="text-stone-400">Host events at your restaurant</div>
+                                </div>
+                                <div className="bg-white/10 rounded-lg p-3">
+                                    <div className="font-bold text-orange-400 mb-1">🎵 Premium Services</div>
+                                    <div className="text-stone-400">Music, decorations, A/V equipment</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <h2 className="text-3xl font-bold text-white mb-4">🎊 Configure Catering Services</h2>
+
+                        {/* Activate Catering Service */}
+                        <div className="bg-gradient-to-br from-purple-500/10 to-pink-500/10 border-2 border-purple-500/30 rounded-xl p-6">
+                            <div className="flex items-center justify-between mb-4">
+                                <div>
+                                    <h3 className="text-xl font-bold text-white">Enable Catering Services</h3>
+                                    <p className="text-stone-400 text-sm">Show catering options on your restaurant profile</p>
+                                </div>
+                                <ToggleSwitch
+                                    enabled={cateringFormData.isActive}
+                                    onChange={(enabled) => setCateringFormData(prev => ({ ...prev, isActive: enabled }))}
+                                />
+                            </div>
+                        </div>
+
+                        {cateringFormData.isActive && (
+                            <>
+                                {/* Event Types */}
+                                <div className="bg-stone-800/50 rounded-xl p-6 border border-stone-700">
+                                    <h3 className="text-xl font-bold text-white mb-4">🎉 Event Types We Cater</h3>
+                                    <p className="text-stone-400 text-sm mb-4">Select all types of events you can accommodate</p>
+                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                        {(['wedding', 'birthday', 'anniversary', 'graduation', 'party', 'family_reunion', 'corporate', 'other'] as CateringEventType[]).map(eventType => {
+                                            const labels = {
+                                                wedding: '💒 Weddings',
+                                                birthday: '🎂 Birthdays',
+                                                anniversary: '💕 Anniversaries',
+                                                graduation: '🎓 Graduations',
+                                                party: '🎉 Parties',
+                                                family_reunion: '👨‍👩‍👧‍👦 Family Reunions',
+                                                corporate: '💼 Corporate',
+                                                other: '🎊 Other Events'
+                                            };
+                                            return (
+                                                <label key={eventType} className="flex items-center gap-2 cursor-pointer bg-stone-700/50 p-3 rounded-lg hover:bg-stone-700 transition-all">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={cateringFormData.eventTypes.includes(eventType)}
+                                                        onChange={(e) => {
+                                                            if (e.target.checked) {
+                                                                setCateringFormData(prev => ({ ...prev, eventTypes: [...prev.eventTypes, eventType] }));
+                                                            } else {
+                                                                setCateringFormData(prev => ({ ...prev, eventTypes: prev.eventTypes.filter(t => t !== eventType) }));
+                                                            }
+                                                        }}
+                                                        className="w-4 h-4 text-purple-600"
+                                                    />
+                                                    <span className="text-sm text-white">{labels[eventType]}</span>
+                                                </label>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+
+                                {/* Service Location */}
+                                <div className="bg-stone-800/50 rounded-xl p-6 border border-stone-700">
+                                    <h3 className="text-xl font-bold text-white mb-4">📍 Service Location</h3>
+                                    <div className="grid md:grid-cols-2 gap-4">
+                                        <label className="flex items-start gap-3 cursor-pointer bg-stone-700/50 p-4 rounded-lg hover:bg-stone-700 transition-all">
+                                            <input
+                                                type="checkbox"
+                                                checked={cateringFormData.offSiteService}
+                                                onChange={(e) => setCateringFormData(prev => ({ ...prev, offSiteService: e.target.checked }))}
+                                                className="w-5 h-5 text-purple-600 mt-1"
+                                            />
+                                            <div>
+                                                <div className="font-bold text-white mb-1">🚚 Off-Site Catering</div>
+                                                <div className="text-xs text-stone-400">We bring food to customer's venue</div>
+                                            </div>
+                                        </label>
+                                        <label className="flex items-start gap-3 cursor-pointer bg-stone-700/50 p-4 rounded-lg hover:bg-stone-700 transition-all">
+                                            <input
+                                                type="checkbox"
+                                                checked={cateringFormData.onSiteService}
+                                                onChange={(e) => setCateringFormData(prev => ({ ...prev, onSiteService: e.target.checked }))}
+                                                className="w-5 h-5 text-purple-600 mt-1"
+                                            />
+                                            <div>
+                                                <div className="font-bold text-white mb-1">🏛️ On-Site Hosting</div>
+                                                <div className="text-xs text-stone-400">Events at our restaurant venue</div>
+                                            </div>
+                                        </label>
+                                    </div>
+                                </div>
+
+                                {/* Venue Facilities (if on-site enabled) */}
+                                {cateringFormData.onSiteService && (
+                                    <div className="bg-stone-800/50 rounded-xl p-6 border border-stone-700">
+                                        <h3 className="text-xl font-bold text-white mb-4">🏛️ Venue Capacity & Facilities</h3>
+                                        <div className="grid md:grid-cols-2 gap-4 mb-6">
+                                            <div>
+                                                <label className="block text-sm font-medium text-stone-400 mb-2">Indoor Seating Capacity</label>
+                                                <input
+                                                    type="number"
+                                                    value={cateringFormData.indoorSeating || ''}
+                                                    onChange={(e) => setCateringFormData(prev => ({ ...prev, indoorSeating: parseInt(e.target.value) || undefined }))}
+                                                    placeholder="e.g., 50"
+                                                    className="w-full p-3 bg-white border border-stone-700 rounded-lg text-white"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium text-stone-400 mb-2">Outdoor Seating Capacity</label>
+                                                <input
+                                                    type="number"
+                                                    value={cateringFormData.outdoorSeating || ''}
+                                                    onChange={(e) => setCateringFormData(prev => ({ ...prev, outdoorSeating: parseInt(e.target.value) || undefined }))}
+                                                    placeholder="e.g., 30"
+                                                    className="w-full p-3 bg-white border border-stone-700 rounded-lg text-white"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <h4 className="font-bold text-white mb-3">Available Services & Amenities</h4>
+                                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                            <label className="flex items-center gap-2 cursor-pointer bg-stone-700/50 p-3 rounded-lg hover:bg-stone-700 transition-all">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={cateringFormData.hasLiveMusic}
+                                                    onChange={(e) => setCateringFormData(prev => ({ ...prev, hasLiveMusic: e.target.checked }))}
+                                                    className="w-4 h-4 text-purple-600"
+                                                />
+                                                <span className="text-sm text-white">🎵 Live Music</span>
+                                            </label>
+                                            <label className="flex items-center gap-2 cursor-pointer bg-stone-700/50 p-3 rounded-lg hover:bg-stone-700 transition-all">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={cateringFormData.hasCakeService}
+                                                    onChange={(e) => setCateringFormData(prev => ({ ...prev, hasCakeService: e.target.checked }))}
+                                                    className="w-4 h-4 text-purple-600"
+                                                />
+                                                <span className="text-sm text-white">🎂 Cake Service</span>
+                                            </label>
+                                            <label className="flex items-center gap-2 cursor-pointer bg-stone-700/50 p-3 rounded-lg hover:bg-stone-700 transition-all">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={cateringFormData.hasDecorations}
+                                                    onChange={(e) => setCateringFormData(prev => ({ ...prev, hasDecorations: e.target.checked }))}
+                                                    className="w-4 h-4 text-purple-600"
+                                                />
+                                                <span className="text-sm text-white">🎈 Decorations</span>
+                                            </label>
+                                            <label className="flex items-center gap-2 cursor-pointer bg-stone-700/50 p-3 rounded-lg hover:bg-stone-700 transition-all">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={cateringFormData.hasAVEquipment}
+                                                    onChange={(e) => setCateringFormData(prev => ({ ...prev, hasAVEquipment: e.target.checked }))}
+                                                    className="w-4 h-4 text-purple-600"
+                                                />
+                                                <span className="text-sm text-white">🎤 A/V Equipment</span>
+                                            </label>
+                                            <label className="flex items-center gap-2 cursor-pointer bg-stone-700/50 p-3 rounded-lg hover:bg-stone-700 transition-all">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={cateringFormData.hasParking}
+                                                    onChange={(e) => setCateringFormData(prev => ({ ...prev, hasParking: e.target.checked }))}
+                                                    className="w-4 h-4 text-purple-600"
+                                                />
+                                                <span className="text-sm text-white">🅿️ Parking</span>
+                                            </label>
+                                            <label className="flex items-center gap-2 cursor-pointer bg-stone-700/50 p-3 rounded-lg hover:bg-stone-700 transition-all">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={cateringFormData.hasKidsArea}
+                                                    onChange={(e) => setCateringFormData(prev => ({ ...prev, hasKidsArea: e.target.checked }))}
+                                                    className="w-4 h-4 text-purple-600"
+                                                />
+                                                <span className="text-sm text-white">🧒 Kids Area</span>
+                                            </label>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Pricing & Requirements */}
+                                <div className="bg-stone-800/50 rounded-xl p-6 border border-stone-700">
+                                    <h3 className="text-xl font-bold text-white mb-4">💰 Pricing & Requirements</h3>
+                                    <div className="grid md:grid-cols-3 gap-4">
+                                        <div>
+                                            <label className="block text-sm font-medium text-stone-400 mb-2">Price Per Person (IDR)</label>
+                                            <input
+                                                type="number"
+                                                value={cateringFormData.pricePerPerson || ''}
+                                                onChange={(e) => setCateringFormData(prev => ({ ...prev, pricePerPerson: parseInt(e.target.value) || undefined }))}
+                                                placeholder="e.g., 150000"
+                                                className="w-full p-3 bg-white border border-stone-700 rounded-lg text-white"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-stone-400 mb-2">Minimum Guests</label>
+                                            <input
+                                                type="number"
+                                                value={cateringFormData.minimumGuests || ''}
+                                                onChange={(e) => setCateringFormData(prev => ({ ...prev, minimumGuests: parseInt(e.target.value) || undefined }))}
+                                                placeholder="e.g., 20"
+                                                className="w-full p-3 bg-white border border-stone-700 rounded-lg text-white"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-stone-400 mb-2">Advance Booking (Days)</label>
+                                            <input
+                                                type="number"
+                                                value={cateringFormData.advanceBookingDays || ''}
+                                                onChange={(e) => setCateringFormData(prev => ({ ...prev, advanceBookingDays: parseInt(e.target.value) || undefined }))}
+                                                placeholder="e.g., 7"
+                                                className="w-full p-3 bg-white border border-stone-700 rounded-lg text-white"
+                                            />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Description */}
+                                <div className="bg-stone-800/50 rounded-xl p-6 border border-stone-700">
+                                    <h3 className="text-xl font-bold text-white mb-4">📝 Service Description</h3>
+                                    <textarea
+                                        value={cateringFormData.description || ''}
+                                        onChange={(e) => setCateringFormData(prev => ({ ...prev, description: e.target.value }))}
+                                        placeholder="Describe your catering services, specialties, and what makes your events special..."
+                                        rows={4}
+                                        className="w-full p-3 bg-white border border-stone-700 rounded-lg text-white resize-none"
+                                    />
+                                </div>
+                            </>
+                        )}
+
+                        {/* Info Cards */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="bg-stone-800/50 rounded-xl p-4 border border-stone-700">
+                                <h4 className="font-bold text-white mb-2">💡 How It Works</h4>
+                                <ul className="text-sm text-stone-400 space-y-1">
+                                    <li>• Enable catering to show on your profile</li>
+                                    <li>• Customers see event hosting options</li>
+                                    <li>• WhatsApp button for direct inquiries</li>
+                                    <li>• Negotiate details and confirm bookings</li>
+                                </ul>
+                            </div>
+                            <div className="bg-stone-800/50 rounded-xl p-4 border border-stone-700">
+                                <h4 className="font-bold text-white mb-2">🎯 Best Practices</h4>
+                                <ul className="text-sm text-stone-400 space-y-1">
+                                    <li>• Be clear about venue capacity limits</li>
+                                    <li>• Set realistic advance booking times</li>
+                                    <li>• Offer package deals for larger events</li>
+                                    <li>• Showcase past event photos in gallery</li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <button
+                            onClick={() => {
+                                updateVendorDetails(vendor.id, { cateringService: cateringFormData });
+                                alert('Catering services configuration saved successfully!');
+                            }}
+                            disabled={!vendor}
+                            className="w-full p-4 bg-gradient-to-r from-purple-500 to-pink-500 text-white font-bold text-xl rounded-xl hover:from-purple-600 hover:to-pink-600 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            💾 Save Catering Configuration
+                        </button>
+                    </div>
+                )}
+                
+                {currentPage === 'alcohol' && (
+                    <div className="space-y-6">
+                        {/* Feature Explanation */}
+                        <div className="bg-gradient-to-r from-red-600/20 to-orange-600/20 border-2 border-red-500/30 rounded-2xl p-6">
+                            <div className="flex items-center gap-3 mb-3">
+                                <h2 className="text-2xl font-bold text-white flex items-center gap-3">
+                                    <span className="text-3xl">🍷</span>
+                                    Alcoholic Beverages Menu
+                                </h2>
+                                <span className="px-3 py-1 bg-red-600 text-white text-sm font-bold rounded-full">21+ ONLY</span>
+                            </div>
+                            <p className="text-stone-300 text-lg mb-4">
+                                Manage your alcoholic drinks menu. Customers must confirm they are 21+ to view this section. ID verification required upon purchase.
+                            </p>
+                            <div className="grid md:grid-cols-3 gap-4 text-sm">
+                                <div className="bg-white/10 rounded-lg p-3">
+                                    <div className="font-bold text-orange-400 mb-1">🔞 Age Restricted</div>
+                                    <div className="text-stone-400">21+ verification required</div>
+                                </div>
+                                <div className="bg-white/10 rounded-lg p-3">
+                                    <div className="font-bold text-amber-400 mb-1">🍺 Drink Categories</div>
+                                    <div className="text-stone-400">Beer, wine, spirits, cocktails</div>
+                                </div>
+                                <div className="bg-white/10 rounded-lg p-3">
+                                    <div className="font-bold text-red-400 mb-1">⚖️ Legal Compliance</div>
+                                    <div className="text-stone-400">Responsible service policy</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <h2 className="text-3xl font-bold text-white mb-4">🍷 Alcohol Menu Management</h2>
+
+                        {/* Activate Alcohol Menu */}
+                        <div className="bg-gradient-to-br from-red-600/10 to-orange-600/10 border-2 border-red-500/30 rounded-xl p-6">
+                            <div className="flex items-center justify-between mb-4">
+                                <div>
+                                    <h3 className="text-xl font-bold text-white flex items-center gap-2">
+                                        Enable Alcohol Menu
+                                        <span className="px-2 py-1 bg-red-600 text-white text-xs font-bold rounded-full">21+</span>
+                                    </h3>
+                                    <p className="text-stone-400 text-sm">Show alcoholic beverages on your restaurant profile</p>
+                                </div>
+                                <ToggleSwitch
+                                    enabled={alcoholMenuData.isActive}
+                                    onChange={(enabled) => setAlcoholMenuData(prev => ({ ...prev, isActive: enabled }))}
+                                />
+                            </div>
+                        </div>
+
+                        {alcoholMenuData.isActive && (
+                            <>
+                                {/* Serving Hours */}
+                                <div className="bg-stone-800/50 rounded-xl p-6 border border-stone-700">
+                                    <h3 className="text-xl font-bold text-white mb-4">⏰ Serving Hours (Optional)</h3>
+                                    <input
+                                        type="text"
+                                        value={alcoholMenuData.servingHours || ''}
+                                        onChange={(e) => setAlcoholMenuData(prev => ({ ...prev, servingHours: e.target.value }))}
+                                        placeholder="e.g., 5 PM - 12 AM"
+                                        className="w-full p-3 bg-white border border-stone-700 rounded-lg text-white"
+                                    />
+                                    <p className="text-xs text-stone-500 mt-2">Specify when alcohol is served (leave blank if available all hours)</p>
+                                </div>
+
+                                {/* Add New Drink */}
+                                <div className="bg-gradient-to-br from-red-600/10 to-orange-600/10 border-2 border-red-500/30 rounded-xl p-6">
+                                    <h3 className="text-xl font-bold text-white mb-4">➕ Add New Drink</h3>
+                                    <div className="grid md:grid-cols-2 gap-4 mb-4">
+                                        <div>
+                                            <label className="block text-sm font-medium text-stone-400 mb-2">Drink Name *</label>
+                                            <input
+                                                type="text"
+                                                value={newDrink.name}
+                                                onChange={(e) => setNewDrink(prev => ({ ...prev, name: e.target.value }))}
+                                                placeholder="e.g., Heineken, Chardonnay"
+                                                className="w-full p-3 bg-white border border-stone-700 rounded-lg text-white"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-stone-400 mb-2">Category *</label>
+                                            <select
+                                                value={newDrink.type}
+                                                onChange={(e) => setNewDrink(prev => ({ ...prev, type: e.target.value as any }))}
+                                                className="w-full p-3 bg-white border border-stone-700 rounded-lg text-white"
+                                            >
+                                                <option value="beer">🍺 Beer</option>
+                                                <option value="wine">🍷 Wine</option>
+                                                <option value="spirits">🥃 Spirits</option>
+                                                <option value="cocktail">🍹 Cocktail</option>
+                                                <option value="other">🍾 Other</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-stone-400 mb-2">Price (IDR) *</label>
+                                            <input
+                                                type="number"
+                                                value={newDrink.price}
+                                                onChange={(e) => setNewDrink(prev => ({ ...prev, price: parseInt(e.target.value) || 0 }))}
+                                                placeholder="e.g., 50000"
+                                                className="w-full p-3 bg-white border border-stone-700 rounded-lg text-white"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-stone-400 mb-2">Image URL *</label>
+                                            <input
+                                                type="text"
+                                                value={newDrink.image}
+                                                onChange={(e) => setNewDrink(prev => ({ ...prev, image: e.target.value }))}
+                                                placeholder="https://example.com/drink.jpg"
+                                                className="w-full p-3 bg-white border border-stone-700 rounded-lg text-white"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-stone-400 mb-2">Volume (Optional)</label>
+                                            <input
+                                                type="text"
+                                                value={newDrink.volume || ''}
+                                                onChange={(e) => setNewDrink(prev => ({ ...prev, volume: e.target.value }))}
+                                                placeholder="e.g., 330ml, 750ml"
+                                                className="w-full p-3 bg-white border border-stone-700 rounded-lg text-white"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-stone-400 mb-2">Alcohol % (Optional)</label>
+                                            <input
+                                                type="number"
+                                                step="0.1"
+                                                value={newDrink.alcoholPercentage || ''}
+                                                onChange={(e) => setNewDrink(prev => ({ ...prev, alcoholPercentage: parseFloat(e.target.value) || undefined }))}
+                                                placeholder="e.g., 5.0, 12.5"
+                                                className="w-full p-3 bg-white border border-stone-700 rounded-lg text-white"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="mb-4">
+                                        <label className="block text-sm font-medium text-stone-400 mb-2">Description (Optional)</label>
+                                        <textarea
+                                            value={newDrink.description || ''}
+                                            onChange={(e) => setNewDrink(prev => ({ ...prev, description: e.target.value }))}
+                                            placeholder="Brief description of the drink..."
+                                            rows={2}
+                                            className="w-full p-3 bg-white border border-stone-700 rounded-lg text-white resize-none"
+                                        />
+                                    </div>
+                                    <button
+                                        onClick={() => {
+                                            if (newDrink.name && newDrink.price && newDrink.image) {
+                                                const drink: AlcoholDrink = {
+                                                    id: `drink-${Date.now()}`,
+                                                    name: newDrink.name,
+                                                    type: newDrink.type as any,
+                                                    price: newDrink.price,
+                                                    image: newDrink.image,
+                                                    description: newDrink.description,
+                                                    volume: newDrink.volume,
+                                                    alcoholPercentage: newDrink.alcoholPercentage
+                                                };
+                                                setAlcoholMenuData(prev => ({ ...prev, drinks: [...prev.drinks, drink] }));
+                                                setNewDrink({ name: '', type: 'beer', price: 0, image: '' });
+                                            } else {
+                                                alert('Please fill in name, price, and image');
+                                            }
+                                        }}
+                                        className="w-full p-3 bg-gradient-to-r from-red-600 to-orange-600 text-white font-bold rounded-lg hover:from-red-700 hover:to-orange-700 transition-all"
+                                    >
+                                        ➕ Add Drink to Menu
+                                    </button>
+                                </div>
+
+                                {/* Current Drinks List */}
+                                <div className="bg-stone-800/50 rounded-xl p-6 border border-stone-700">
+                                    <h3 className="text-xl font-bold text-white mb-4">
+                                        🍺 Current Drinks ({alcoholMenuData.drinks.length})
+                                    </h3>
+                                    {alcoholMenuData.drinks.length === 0 ? (
+                                        <div className="text-center py-12 text-stone-400">
+                                            <div className="text-6xl mb-4">🍷</div>
+                                            <p className="text-lg">No drinks added yet</p>
+                                            <p className="text-sm mt-2">Add your first alcoholic beverage above</p>
+                                        </div>
+                                    ) : (
+                                        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                            {alcoholMenuData.drinks.map((drink, index) => (
+                                                <div key={drink.id} className="bg-white rounded-xl overflow-hidden border border-stone-700 group">
+                                                    <div className="relative h-40 overflow-hidden">
+                                                        <img 
+                                                            src={drink.image} 
+                                                            alt={drink.name}
+                                                            className="w-full h-full object-cover"
+                                                        />
+                                                        {drink.alcoholPercentage && (
+                                                            <div className="absolute top-2 right-2 bg-red-600/90 text-white text-xs font-bold px-2 py-1 rounded-full">
+                                                                {drink.alcoholPercentage}% ABV
+                                                            </div>
+                                                        )}
+                                                        <button
+                                                            onClick={() => {
+                                                                if (confirm(`Remove ${drink.name} from menu?`)) {
+                                                                    setAlcoholMenuData(prev => ({
+                                                                        ...prev,
+                                                                        drinks: prev.drinks.filter((_, i) => i !== index)
+                                                                    }));
+                                                                }
+                                                            }}
+                                                            className="absolute top-2 left-2 p-2 bg-red-600 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                                                        >
+                                                            🗑️
+                                                        </button>
+                                                    </div>
+                                                    <div className="p-4">
+                                                        <h5 className="font-bold text-white mb-1">{drink.name}</h5>
+                                                        <p className="text-xs text-stone-400 mb-2">
+                                                            {drink.type.charAt(0).toUpperCase() + drink.type.slice(1)}
+                                                            {drink.volume && ` • ${drink.volume}`}
+                                                        </p>
+                                                        <div className="text-orange-400 font-bold">
+                                                            {formatIndonesianCurrency(drink.price)}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Legal Disclaimer */}
+                                <div className="bg-red-900/20 border-2 border-red-500/30 rounded-xl p-4">
+                                    <h4 className="font-bold text-white mb-2 flex items-center gap-2">
+                                        <span>⚖️</span> Legal Compliance & Responsible Service
+                                    </h4>
+                                    <ul className="text-sm text-stone-400 space-y-1">
+                                        <li>• Valid government-issued ID required for all alcohol purchases</li>
+                                        <li>• Customers must be 21 years or older</li>
+                                        <li>• Management reserves the right to refuse service</li>
+                                        <li>• Encourage responsible drinking and never serve to intoxicated individuals</li>
+                                        <li>• Comply with all local laws and regulations regarding alcohol service</li>
+                                    </ul>
+                                </div>
+                            </>
+                        )}
+
+                        {/* Info Cards */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="bg-stone-800/50 rounded-xl p-4 border border-stone-700">
+                                <h4 className="font-bold text-white mb-2">💡 How It Works</h4>
+                                <ul className="text-sm text-stone-400 space-y-1">
+                                    <li>• Enable alcohol menu to show drinks</li>
+                                    <li>• Customers must confirm 21+ age</li>
+                                    <li>• Add drinks with images and prices</li>
+                                    <li>• ID verification required at purchase</li>
+                                </ul>
+                            </div>
+                            <div className="bg-stone-800/50 rounded-xl p-4 border border-stone-700">
+                                <h4 className="font-bold text-white mb-2">🎯 Best Practices</h4>
+                                <ul className="text-sm text-stone-400 space-y-1">
+                                    <li>• Use clear, appetizing drink photos</li>
+                                    <li>• Include alcohol percentage when known</li>
+                                    <li>• Set realistic prices for your market</li>
+                                    <li>• Update menu seasonally with specials</li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <button
+                            onClick={() => {
+                                updateVendorDetails(vendor.id, { alcoholMenu: alcoholMenuData });
+                                alert('Alcohol menu configuration saved successfully!');
+                            }}
+                            disabled={!vendor}
+                            className="w-full p-4 bg-gradient-to-r from-red-600 to-orange-600 text-white font-bold text-xl rounded-xl hover:from-red-700 hover:to-orange-700 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            💾 Save Alcohol Menu
+                        </button>
+                    </div>
+                )}
+                
                 {currentPage === 'bank' && (
                     <div className="space-y-6">
-                        <h2 className="text-3xl font-bold text-white mb-4">🏦 Bank & Payment</h2>
+                        {/* Feature Explanation */}
+                        <div className="bg-gradient-to-r from-teal-500/20 to-cyan-500/20 border-2 border-teal-500/30 rounded-2xl p-6">
+                            <h2 className="text-2xl font-bold text-white mb-3 flex items-center gap-3">
+                                <span className="text-3xl">🏦</span>
+                                Bank Details & Payment
+                            </h2>
+                            <p className="text-stone-300 text-lg mb-4">
+                                Setup your bank account to receive payments. Customers can transfer money directly to your account for orders.
+                            </p>
+                            <div className="grid md:grid-cols-3 gap-4 text-sm">
+                                <div className="bg-white/10 rounded-lg p-3">
+                                    <div className="font-bold text-green-400 mb-1">🏦 Bank Transfer</div>
+                                    <div className="text-stone-400">Direct payments to your account</div>
+                                </div>
+                                <div className="bg-white/10 rounded-lg p-3">
+                                    <div className="font-bold text-blue-400 mb-1">💳 Multiple Methods</div>
+                                    <div className="text-stone-400">Support BCA, Mandiri, GoPay, etc.</div>
+                                </div>
+                                <div className="bg-white/10 rounded-lg p-3">
+                                    <div className="font-bold text-purple-400 mb-1">💰 Delivery Fee</div>
+                                    <div className="text-stone-400">Set your standard delivery charge</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <h2 className="text-3xl font-bold text-white mb-4">🏦 Payment Setup</h2>
                         <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-xl p-8">
                             <div className="space-y-6">
                                 <div>
@@ -1207,7 +2364,7 @@ const RestaurantDashboard: React.FC = () => {
                                     <select
                                         value={bankFormData.bankName}
                                         onChange={(e) => setBankFormData(prev => ({ ...prev, bankName: e.target.value }))}
-                                        className="w-full p-4 bg-stone-900 border border-stone-700 rounded-xl text-white text-lg"
+                                        className="w-full p-4 bg-white border border-stone-700 rounded-xl text-white text-lg"
                                     >
                                         <option value="">-- Choose Indonesian Bank --</option>
                                         {INDONESIAN_BANKS.map(bank => (
@@ -1223,7 +2380,7 @@ const RestaurantDashboard: React.FC = () => {
                                         placeholder="e.g., Ani Lestari"
                                         value={bankFormData.accountHolder}
                                         onChange={(e) => setBankFormData(prev => ({ ...prev, accountHolder: e.target.value }))}
-                                        className="w-full p-4 bg-stone-900 border border-stone-700 rounded-xl text-white text-lg placeholder-stone-600"
+                                        className="w-full p-4 bg-white border border-stone-700 rounded-xl text-white text-lg placeholder-stone-600"
                                     />
                                 </div>
                                 
@@ -1234,7 +2391,7 @@ const RestaurantDashboard: React.FC = () => {
                                         placeholder="e.g., 1234567890"
                                         value={bankFormData.accountNumber}
                                         onChange={(e) => setBankFormData(prev => ({ ...prev, accountNumber: e.target.value.replace(/\D/g, '') }))}
-                                        className="w-full p-4 bg-stone-900 border border-stone-700 rounded-xl text-white text-lg font-mono placeholder-stone-600"
+                                        className="w-full p-4 bg-white border border-stone-700 rounded-xl text-white text-lg font-mono placeholder-stone-600"
                                     />
                                 </div>
                                 
@@ -1250,7 +2407,7 @@ const RestaurantDashboard: React.FC = () => {
                                         placeholder="e.g., 08123456789"
                                         value={whatsAppFormData}
                                         onChange={(e) => setWhatsAppFormData(e.target.value.replace(/\D/g, ''))}
-                                        className="w-full p-4 bg-stone-900 border border-green-500/30 rounded-xl text-white text-lg font-mono placeholder-stone-600"
+                                        className="w-full p-4 bg-white border border-green-500/30 rounded-xl text-white text-lg font-mono placeholder-stone-600"
                                     />
                                     <p className="text-sm text-stone-400 mt-2">Customers will contact you via WhatsApp for orders</p>
                                 </div>
@@ -1289,7 +2446,32 @@ const RestaurantDashboard: React.FC = () => {
                 
                 {currentPage === 'membership' && (
                     <div className="space-y-6">
-                        <h2 className="text-3xl font-bold text-white mb-4">⭐ Membership & Promotion</h2>
+                        {/* Feature Explanation */}
+                        <div className="bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border-2 border-yellow-500/30 rounded-2xl p-6">
+                            <h2 className="text-2xl font-bold text-white mb-3 flex items-center gap-3">
+                                <span className="text-3xl">⭐</span>
+                                Membership & Promotional Content
+                            </h2>
+                            <p className="text-stone-300 text-lg mb-4">
+                                Upgrade to Silver or Gold membership to feature promotional images or videos on the main discovery feed.
+                            </p>
+                            <div className="grid md:grid-cols-3 gap-4 text-sm">
+                                <div className="bg-white/10 rounded-lg p-3">
+                                    <div className="font-bold text-gray-400 mb-1">🥈 Silver</div>
+                                    <div className="text-stone-400">Upload promotional images</div>
+                                </div>
+                                <div className="bg-white/10 rounded-lg p-3">
+                                    <div className="font-bold text-yellow-400 mb-1">🥇 Gold</div>
+                                    <div className="text-stone-400">Upload 15-second videos</div>
+                                </div>
+                                <div className="bg-white/10 rounded-lg p-3">
+                                    <div className="font-bold text-purple-400 mb-1">⬆️ Priority</div>
+                                    <div className="text-stone-400">Higher visibility in feed</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <h2 className="text-3xl font-bold text-white mb-4">⭐ Membership Plans</h2>
                         <div className="space-y-4">
                             {MEMBERSHIP_PACKAGES.map(pkg => (
                                 <div 
@@ -1297,7 +2479,7 @@ const RestaurantDashboard: React.FC = () => {
                                     className={`p-6 rounded-xl border-2 transition-all ${
                                         vendor.membershipTier === pkg.tier 
                                             ? 'border-green-500 bg-green-500/20' 
-                                            : 'border-stone-700 bg-stone-900/50'
+                                            : 'border-stone-700 bg-white/50'
                                     }`}
                                 >
                                     <div className="flex justify-between items-start mb-4">
@@ -1378,3 +2560,5 @@ const RestaurantDashboard: React.FC = () => {
 };
 
 export default RestaurantDashboard;
+
+

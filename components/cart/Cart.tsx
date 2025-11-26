@@ -129,6 +129,7 @@ const Cart: React.FC = () => {
   };
 
   return (
+    <>
     <div className="max-w-4xl mx-auto pb-16">
       <div className="flex justify-between items-center mb-2">
         <h1 className="text-3xl font-bold text-stone-100">Review Your Order</h1>
@@ -313,6 +314,7 @@ const Cart: React.FC = () => {
         </div>
       </div>
     </Modal>
+    </>
   );
 };
 

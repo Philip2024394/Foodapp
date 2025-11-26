@@ -1,5 +1,5 @@
 import React, { useState, useMemo, FC, useEffect } from 'react';
-import { MenuItem, ShopItem, Vehicle, Vendor, Page, VehicleType, Review, VehicleBooking, Voucher } from '../../types';
+import { MenuItem, ShopItem, Vehicle, Vendor, Page, VehicleType, Review, VehicleBooking, Voucher, CateringService, CateringEventType, AlcoholMenu, AlcoholDrink } from '../../types';
 import ImagePreviewModal from '../common/ImagePreviewModal';
 import QuantitySelector from '../common/QuantitySelector';
 import { WebsiteIcon, InstagramIcon, FacebookIcon, TikTokIcon, LinkedInIcon, ShieldCheckIcon, CarIcon, BikeIcon, ClockIcon, ChiliIcon, StarIcon, GlobeIcon, LanguageIcon, StoreFrontIcon, ArrowDownIcon, LocationPinIcon, BriefcaseIcon, PlusIcon, PhotographIcon, InformationCircleIcon, GiftIcon, CheckIcon } from '../common/Icon';
@@ -262,68 +262,47 @@ const FlipProfileCard: FC<FlipProfileCardProps> = ({ vendor, galleryImages, onIm
                         />
                     </div>
 
-                    {/* Flip Button */}
-                    <button 
-                        onClick={() => setIsFlipped(true)}
-                        className="absolute top-6 right-6 bg-black/60 backdrop-blur-md text-white px-3 py-1.5 rounded-full flex items-center gap-2 border border-white/20 hover:bg-orange-600 hover:border-orange-500 transition-all text-sm font-semibold shadow-lg z-20"
-                    >
-                        <GiftIcon className="h-4 w-4" />
-                        <span>Vouchers</span>
-                    </button>
+                    {/* Flip Button / Event Button */}
+                    {isEventActive && vendor.currentEvent ? (
+                        <button 
+                            onClick={() => navigateToLiveStream(vendor)}
+                            className="absolute top-6 right-6 z-20 group"
+                        >
+                            <div className="relative w-16 h-16 rounded-full overflow-hidden border-4 border-green-400 shadow-lg shadow-green-400/50 animate-pulse">
+                                {/* Event Image */}
+                                <img 
+                                    src={vendor.currentEvent.image} 
+                                    alt={vendor.currentEvent.name} 
+                                    className="w-full h-full object-cover"
+                                />
+                                {/* Dark overlay for text */}
+                                <div className="absolute inset-0 bg-black/40"></div>
+                                {/* LIVE text with glow */}
+                                <div className="absolute inset-0 flex items-center justify-center">
+                                    <span className="text-white font-black text-xs uppercase tracking-wider drop-shadow-[0_0_10px_rgba(255,255,255,1)] animate-pulse">
+                                        LIVE
+                                    </span>
+                                </div>
+                            </div>
+                            {/* Satellite ping animation */}
+                            <div className="absolute inset-0 rounded-full animate-ping bg-green-400 opacity-75 pointer-events-none"></div>
+                            {/* Hover tooltip */}
+                            <div className="absolute top-full right-0 mt-2 bg-black/80 backdrop-blur-md text-white px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity shadow-lg">
+                                🎉 {vendor.currentEvent.name} • Tap to view
+                            </div>
+                        </button>
+                    ) : (
+                        <button 
+                            onClick={() => setIsFlipped(true)}
+                            className="absolute top-6 right-6 bg-black/60 backdrop-blur-md text-white px-3 py-1.5 rounded-full flex items-center gap-2 border border-white/20 hover:bg-orange-600 hover:border-orange-500 transition-all text-sm font-semibold shadow-lg z-20"
+                        >
+                            <GiftIcon className="h-4 w-4" />
+                            <span>Vouchers</span>
+                        </button>
+                    )}
 
                     {/* Bottom Info */}
                     <div className="absolute bottom-0 left-0 right-0 p-6 text-left z-20">
-                        {/* Live Event Badge */}
-                        {isEventActive && vendor.currentEvent && (
-                            <div className="mb-3 animate-fade-in-scale origin-bottom-left">
-                                <div className="relative bg-gradient-to-r from-green-600 to-green-500 rounded-2xl shadow-2xl border-2 border-green-400/50 cursor-pointer transform hover:scale-105 transition-all hover:shadow-green-500/50 overflow-hidden">
-                                    {/* Event Image Background */}
-                                    <img 
-                                        src={vendor.currentEvent.image} 
-                                        alt={vendor.currentEvent.name}
-                                        className="w-full h-32 object-cover"
-                                    />
-                                    
-                                    {/* Gradient Overlay */}
-                                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/60 to-transparent"></div>
-                                    
-                                    {/* Content Overlay */}
-                                    <div className="absolute inset-0 p-4 flex flex-col justify-between">
-                                        {/* Top: LIVE Badge */}
-                                        <div className="flex items-center gap-2">
-                                            <div className="relative">
-                                                <div className="w-3 h-3 bg-white rounded-full animate-pulse"></div>
-                                                <div className="absolute inset-0 bg-white rounded-full animate-ping"></div>
-                                            </div>
-                                            <div className="text-white font-black text-xl uppercase tracking-widest drop-shadow-[0_0_10px_rgba(255,255,255,0.8)] animate-pulse">
-                                                LIVE
-                                            </div>
-                                            {eventTimeRemaining && (
-                                                <div className="ml-auto bg-black/60 backdrop-blur-sm px-2 py-1 rounded-full text-xs font-bold text-white flex items-center gap-1 border border-white/30">
-                                                    <ClockIcon className="h-3 w-3" />
-                                                    {eventTimeRemaining}
-                                                </div>
-                                            )}
-                                        </div>
-                                        
-                                        {/* Bottom: Event Info */}
-                                        <div>
-                                            <div className="font-bold text-base text-white uppercase tracking-wide drop-shadow-lg">
-                                                🎉 {vendor.currentEvent.type}
-                                            </div>
-                                            <div className="text-sm text-white/90 font-semibold drop-shadow-md">
-                                                {vendor.currentEvent.name}
-                                            </div>
-                                            <div className="text-xs text-white/80 mt-1 drop-shadow">
-                                                Tap profile button to view details
-                                            </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-                        
                         {/* Dine-In Promotion - DIRECTLY ABOVE NAME */}
                         {isDineInPromoActive && vendor.dineInPromotion && (
                             <div className="mb-3 animate-fade-in-scale origin-bottom-left">
@@ -541,6 +520,291 @@ const ServiceListItem: FC<{ item: ShopItem, onImageClick: (item: ShopItem) => vo
 
 // Removed static VendorProfileHeader as it's replaced by FlipProfileCard
 
+// --- CATERING SERVICE COMPONENT ---
+const CateringServiceSection: FC<{ cateringService: CateringService; vendorName: string; whatsapp?: string; isExpanded: boolean }> = ({ cateringService, vendorName, whatsapp, isExpanded }) => {
+    
+    const eventTypeLabels: Record<CateringEventType, string> = {
+        wedding: '💒 Weddings',
+        birthday: '🎂 Birthdays',
+        anniversary: '💕 Anniversaries',
+        graduation: '🎓 Graduations',
+        party: '🎉 Parties',
+        family_reunion: '👨‍👩‍👧‍👦 Family Reunions',
+        corporate: '💼 Corporate Events',
+        other: '🎊 Other Events'
+    };
+
+    if (!isExpanded) return null;
+
+    return (
+        <div className="bg-gradient-to-br from-purple-900/20 via-pink-900/20 to-orange-900/20 border-2 border-purple-500/30 rounded-2xl p-6 mb-6 shadow-2xl animate-fade-in">
+            {/* Header */}
+            <div className="flex items-center gap-3 mb-4">
+                <div className="p-3 bg-purple-600/30 rounded-xl">
+                    <span className="text-3xl">🎊</span>
+                </div>
+                <div>
+                    <h3 className="text-2xl font-bold text-white">Catering & Events Services</h3>
+                    <p className="text-stone-300 text-sm">We host special occasions</p>
+                </div>
+            </div>
+
+            {/* Event Types Badges */}
+            <div className="flex flex-wrap gap-2 mb-4">
+                {cateringService.eventTypes?.map(type => (
+                    <span key={type} className="px-3 py-1 bg-purple-600/40 text-white rounded-full text-sm font-semibold border border-purple-400/30">
+                        {eventTypeLabels[type]}
+                    </span>
+                ))}
+            </div>
+
+            {/* Service Options */}
+            <div className="grid grid-cols-2 gap-3 mb-4">
+                {cateringService.offSiteService && (
+                    <div className="bg-black/30 rounded-lg p-3 border border-purple-400/20">
+                        <div className="flex items-center gap-2 text-purple-300">
+                            <span className="text-xl">🚚</span>
+                            <span className="font-bold text-sm">Off-Site Catering</span>
+                        </div>
+                        <p className="text-xs text-stone-400 mt-1">We come to your location</p>
+                    </div>
+                )}
+                {cateringService.onSiteService && (
+                    <div className="bg-black/30 rounded-lg p-3 border border-purple-400/20">
+                        <div className="flex items-center gap-2 text-pink-300">
+                            <span className="text-xl">🏠</span>
+                            <span className="font-bold text-sm">Host at Our Venue</span>
+                        </div>
+                        <p className="text-xs text-stone-400 mt-1">Events at our restaurant</p>
+                    </div>
+                )}
+            </div>
+
+            {/* Expanded Details */}
+            <div className="mt-4 space-y-4">
+                {/* Description */}
+                {cateringService.description && (
+                        <div className="bg-black/40 rounded-xl p-4 border border-purple-400/20">
+                            <h4 className="font-bold text-white mb-2 flex items-center gap-2">
+                                <span>📝</span> About Our Catering Services
+                            </h4>
+                            <p className="text-stone-300 text-sm leading-relaxed">{cateringService.description}</p>
+                        </div>
+                    )}
+
+                    {/* On-Site Facilities (if venue hosting available) */}
+                    {cateringService.onSiteService && (
+                        <div className="bg-black/40 rounded-xl p-4 border border-purple-400/20">
+                            <h4 className="font-bold text-white mb-3 flex items-center gap-2">
+                                <span>🏛️</span> Our Venue Facilities
+                            </h4>
+                            <div className="grid md:grid-cols-2 gap-3 text-sm">
+                                {cateringService.indoorSeating && (
+                                    <div className="flex items-center gap-2 text-stone-300">
+                                        <span className="text-green-400">✓</span>
+                                        <span><strong>{cateringService.indoorSeating}</strong> Indoor Seats</span>
+                                    </div>
+                                )}
+                                {cateringService.outdoorSeating && (
+                                    <div className="flex items-center gap-2 text-stone-300">
+                                        <span className="text-green-400">✓</span>
+                                        <span><strong>{cateringService.outdoorSeating}</strong> Outdoor Seats</span>
+                                    </div>
+                                )}
+                                {cateringService.hasLiveMusic && (
+                                    <div className="flex items-center gap-2 text-stone-300">
+                                        <span className="text-green-400">✓</span>
+                                        <span>🎵 Live Music Available</span>
+                                    </div>
+                                )}
+                                {cateringService.hasCakeService && (
+                                    <div className="flex items-center gap-2 text-stone-300">
+                                        <span className="text-green-400">✓</span>
+                                        <span>🎂 Custom Cake Orders</span>
+                                    </div>
+                                )}
+                                {cateringService.hasDecorations && (
+                                    <div className="flex items-center gap-2 text-stone-300">
+                                        <span className="text-green-400">✓</span>
+                                        <span>🎈 Event Decorations</span>
+                                    </div>
+                                )}
+                                {cateringService.hasAVEquipment && (
+                                    <div className="flex items-center gap-2 text-stone-300">
+                                        <span className="text-green-400">✓</span>
+                                        <span>🎤 Audio/Visual Equipment</span>
+                                    </div>
+                                )}
+                                {cateringService.hasParking && (
+                                    <div className="flex items-center gap-2 text-stone-300">
+                                        <span className="text-green-400">✓</span>
+                                        <span>🅿️ Parking Available</span>
+                                    </div>
+                                )}
+                                {cateringService.hasKidsArea && (
+                                    <div className="flex items-center gap-2 text-stone-300">
+                                        <span className="text-green-400">✓</span>
+                                        <span>🧒 Kids Play Area</span>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Pricing & Requirements */}
+                    <div className="bg-black/40 rounded-xl p-4 border border-purple-400/20">
+                        <h4 className="font-bold text-white mb-3 flex items-center gap-2">
+                            <span>💰</span> Pricing & Booking Info
+                        </h4>
+                        <div className="grid md:grid-cols-2 gap-3 text-sm">
+                            {cateringService.pricePerPerson && (
+                                <div className="text-stone-300">
+                                    <span className="text-stone-400">Starting from:</span>
+                                    <div className="text-lg font-bold text-orange-400 mt-1">
+                                        {formatIndonesianCurrency(cateringService.pricePerPerson)}/person
+                                    </div>
+                                </div>
+                            )}
+                            {cateringService.minimumGuests && (
+                                <div className="text-stone-300">
+                                    <span className="text-stone-400">Minimum guests:</span>
+                                    <div className="text-lg font-bold text-white mt-1">
+                                        {cateringService.minimumGuests} people
+                                    </div>
+                                </div>
+                            )}
+                            {cateringService.advanceBookingDays && (
+                                <div className="text-stone-300 md:col-span-2">
+                                    <span className="text-stone-400">Advance booking required:</span>
+                                    <div className="text-lg font-bold text-white mt-1">
+                                        {cateringService.advanceBookingDays} days notice
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Contact Button */}
+                    {whatsapp && (
+                        <div className="bg-gradient-to-r from-green-600/20 to-emerald-600/20 border-2 border-green-500/30 rounded-xl p-4 text-center">
+                            <p className="text-white font-semibold mb-3">
+                                📞 Ready to plan your special event?
+                            </p>
+                            <WhatsAppChatButton
+                                phoneNumber={whatsapp}
+                                defaultMessage={`Hello ${vendorName}! I'm interested in your catering and event services. I'd like to discuss planning a special event. Can you provide more details?`}
+                                buttonText="💬 Contact Us on WhatsApp"
+                                className="w-full"
+                            />
+                            <p className="text-stone-400 text-xs mt-2">
+                                Let's discuss your event requirements, menu options, and availability
+                            </p>
+                        </div>
+                    )}
+                </div>
+        </div>
+    );
+};
+
+// --- ALCOHOL MENU COMPONENT ---
+const AlcoholMenuSection: FC<{ alcoholMenu: AlcoholMenu; vendorName: string; isExpanded: boolean }> = ({ alcoholMenu, vendorName, isExpanded }) => {
+    const drinkTypeLabels = {
+        beer: '🍺 Beer',
+        wine: '🍷 Wine',
+        spirits: '🥃 Spirits',
+        cocktail: '🍹 Cocktails',
+        other: '🍾 Other'
+    };
+
+    const groupedDrinks = useMemo(() => {
+        const grouped: Record<string, AlcoholDrink[]> = {};
+        alcoholMenu.drinks?.forEach(drink => {
+            if (!grouped[drink.type]) grouped[drink.type] = [];
+            grouped[drink.type].push(drink);
+        });
+        return grouped;
+    }, [alcoholMenu.drinks]);
+
+    if (!isExpanded) return null;
+
+    return (
+        <div className="mb-6 animate-fade-in">
+            {/* Header with Age Warning */}
+            <div className="flex items-center justify-between mb-4 pb-3 border-b border-red-500/30">
+                <div className="flex items-center gap-3">
+                    <div className="p-2 bg-red-600/30 rounded-lg">
+                        <span className="text-2xl">🍷</span>
+                    </div>
+                    <div>
+                        <div className="flex items-center gap-2">
+                            <h3 className="text-xl font-bold text-white">Alcoholic Beverages</h3>
+                            <span className="px-2 py-0.5 bg-red-600 text-white text-xs font-bold rounded-full">21+</span>
+                        </div>
+                        <p className="text-stone-400 text-xs">ID verification required upon purchase</p>
+                    </div>
+                </div>
+                {alcoholMenu.servingHours && (
+                    <div className="bg-black/30 rounded-lg px-3 py-1.5 border border-red-400/20 text-right">
+                        <span className="text-orange-300 font-semibold text-xs">⏰ {alcoholMenu.servingHours}</span>
+                    </div>
+                )}
+            </div>
+
+            {/* Drinks Menu */}
+            <div className="space-y-6">
+                {Object.entries(groupedDrinks).map(([type, drinks]) => (
+                    <div key={type}>
+                        <h4 className="text-lg font-bold text-white mb-3 flex items-center gap-2 border-b border-red-500/20 pb-2">
+                            {drinkTypeLabels[type as keyof typeof drinkTypeLabels]}
+                        </h4>
+                        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {drinks.map(drink => (
+                                <div key={drink.id} className="bg-stone-800/40 rounded-xl overflow-hidden border border-red-400/20 hover:border-red-400/40 transition-all group">
+                                    <div className="relative h-40 overflow-hidden">
+                                        <img 
+                                            src={drink.image} 
+                                            alt={drink.name}
+                                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                                        />
+                                        {drink.alcoholPercentage && (
+                                            <div className="absolute top-2 right-2 bg-red-600/90 backdrop-blur-sm text-white text-xs font-bold px-2 py-1 rounded-full">
+                                                {drink.alcoholPercentage}% ABV
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="p-4">
+                                        <h5 className="font-bold text-white mb-1">{drink.name}</h5>
+                                        {drink.volume && (
+                                            <p className="text-xs text-stone-400 mb-2">{drink.volume}</p>
+                                        )}
+                                        {drink.description && (
+                                            <p className="text-sm text-stone-400 mb-2 line-clamp-2">{drink.description}</p>
+                                        )}
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-orange-400 font-bold text-lg">
+                                                {formatIndonesianCurrency(drink.price)}
+                                            </span>
+                                            <span className="text-xs text-red-400 font-semibold">21+</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                ))}
+
+                {/* Legal Disclaimer */}
+                <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-3 text-center">
+                    <p className="text-red-200 text-xs font-semibold mb-1">⚠️ Responsible Drinking Reminder</p>
+                    <p className="text-stone-400 text-xs">
+                        Valid ID required. Drink responsibly. Don't drink and drive.
+                    </p>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 const SocialIconButton: React.FC<{ href: string; icon: React.ReactNode, label: string }> = ({ href, icon, label }) => (
     <a 
         href={href} 
@@ -579,6 +843,10 @@ const VendorPage: React.FC = () => {
     
     // Modern Menu State
     const [activeCategory, setActiveCategory] = useState<string>('Popular');
+    
+    // Special Services State
+    const [showCatering, setShowCatering] = useState(false);
+    const [showAlcohol, setShowAlcohol] = useState(false);
 
     useEffect(() => {
         if (vendorDetails) {
@@ -944,6 +1212,68 @@ const VendorPage: React.FC = () => {
             <FlipProfileCard vendor={vendorDetails} galleryImages={galleryImages} onImageClick={handleImageClick} />
 
             <div className="max-w-4xl mx-auto">
+                {/* Special Services Buttons Row - Shows for food vendors only */}
+                {vendorDetails.type === 'food' && (vendorDetails.cateringService?.isActive || vendorDetails.alcoholMenu?.isActive) && (
+                    <div className="flex gap-3 mb-6">
+                        {vendorDetails.cateringService?.isActive && (
+                            <button
+                                onClick={() => {
+                                    setShowCatering(!showCatering);
+                                    setShowAlcohol(false);
+                                }}
+                                className={`flex-1 p-4 rounded-xl font-bold text-lg transition-all border-2 ${
+                                    showCatering
+                                        ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white border-purple-500 shadow-lg scale-105'
+                                        : 'bg-stone-800/50 text-stone-300 border-purple-500/30 hover:bg-stone-700/50'
+                                }`}
+                            >
+                                <div className="flex items-center justify-center gap-2">
+                                    <span className="text-2xl">🎊</span>
+                                    <span>Catering & Events</span>
+                                </div>
+                            </button>
+                        )}
+                        {vendorDetails.alcoholMenu?.isActive && (
+                            <button
+                                onClick={() => {
+                                    setShowAlcohol(!showAlcohol);
+                                    setShowCatering(false);
+                                }}
+                                className={`flex-1 p-4 rounded-xl font-bold text-lg transition-all border-2 ${
+                                    showAlcohol
+                                        ? 'bg-gradient-to-r from-red-600 to-orange-600 text-white border-red-500 shadow-lg scale-105'
+                                        : 'bg-stone-800/50 text-stone-300 border-red-500/30 hover:bg-stone-700/50'
+                                }`}
+                            >
+                                <div className="flex items-center justify-center gap-2">
+                                    <span className="text-2xl">🍷</span>
+                                    <span>Alcohol Menu</span>
+                                    <span className="px-2 py-1 bg-red-600 text-white text-xs rounded-full">21+</span>
+                                </div>
+                            </button>
+                        )}
+                    </div>
+                )}
+
+                {/* Catering Service Section - Shows when button clicked */}
+                {vendorDetails.type === 'food' && vendorDetails.cateringService?.isActive && (
+                    <CateringServiceSection 
+                        cateringService={vendorDetails.cateringService} 
+                        vendorName={vendorDetails.name}
+                        whatsapp={vendorDetails.whatsapp}
+                        isExpanded={showCatering}
+                    />
+                )}
+
+                {/* Alcohol Menu Section - Shows when button clicked */}
+                {vendorDetails.type === 'food' && vendorDetails.alcoholMenu?.isActive && (
+                    <AlcoholMenuSection 
+                        alcoholMenu={vendorDetails.alcoholMenu} 
+                        vendorName={vendorDetails.name}
+                        isExpanded={showAlcohol}
+                    />
+                )}
+
                 {/* REMOVED: VisitVoucherCard was here */}
 
                 {vendorDetails.type === 'business' && (

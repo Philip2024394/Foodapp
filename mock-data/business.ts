@@ -1,13 +1,15 @@
 
 
-import { Vendor, BusinessCategory, MembershipTier, RestaurantEventType } from '../types';
+import { Vendor, BusinessCategory, MembershipTier, RestaurantEventType, PaymentProvider } from '../types';
 
 export const VENDORS_DATA: Vendor[] = [
     // Food Vendors
     { 
         id: 'v1', name: 'Warung Bu Ani', type: 'food', address: 'Kuta', street: 'Jl. Legian', rating: 4.8, distance: 1.2, 
         headerImage: 'https://picsum.photos/seed/v1_header/800/200', image: 'https://picsum.photos/seed/v1/200/200', 
-        bankDetails: { bankName: 'BCA', accountNumber: '111222333', accountHolder: 'Ani Lestari' }, 
+        bankDetails: { bankName: 'BCA', accountNumber: '111222333', accountHolder: 'Ani Lestari' },
+        acceptedPaymentProviders: [PaymentProvider.BCA, PaymentProvider.MANDIRI, PaymentProvider.GOPAY, PaymentProvider.OVO],
+        deliveryFee: 10000, // Rp 10,000
         bio: "Authentic Javanese home cooking since 2005.", cuisine: "Javanese", likes: 23400, isLive: true,
         youtubeStreamId: 'jfKfPfyJRdk', // MOCK: Lofi cooking stream for demo
         dineInPromotion: {
@@ -40,10 +42,47 @@ export const VENDORS_DATA: Vendor[] = [
             { id: 'vch1', title: 'Nasi Goreng Deal', discountAmount: 5000, description: 'Get Rp 5.000 off our signature Nasi Goreng Special.', validCategory: 'Food' },
             { id: 'vch2', title: 'Free Iced Tea', discountAmount: 5000, description: 'Save on drinks with any meal purchase.', validCategory: 'Drink' },
             { id: 'vch3', title: 'Bakso Discount', discountAmount: 3000, description: 'Discount on any Bakso soup order.', validCategory: 'Food' }
-        ]
+        ],
+        // Catering Service
+        cateringService: {
+            isActive: true,
+            eventTypes: ['wedding', 'birthday', 'corporate', 'party'],
+            offSiteService: true,
+            onSiteService: true,
+            indoorSeating: 100,
+            outdoorSeating: 50,
+            hasLiveMusic: true,
+            hasCakeService: true,
+            hasDecorations: true,
+            hasAVEquipment: true,
+            hasParking: true,
+            hasKidsArea: false,
+            pricePerPerson: 150000,
+            minimumGuests: 20,
+            advanceBookingDays: 7,
+            description: 'We specialize in traditional Javanese cuisine for your special events. Our experienced team can handle events from intimate gatherings to large celebrations. Custom menus available upon request.'
+        },
+        // Alcohol Menu
+        alcoholMenu: {
+            isActive: true,
+            servingHours: '5:00 PM - 11:00 PM',
+            requiresID: true,
+            drinks: [
+                { id: 'beer1', name: 'Bintang Beer', type: 'beer', price: 35000, image: 'https://images.pexels.com/photos/1552630/pexels-photo-1552630.jpeg', alcoholPercentage: 4.7, volume: '330ml', description: 'Indonesia\'s favorite lager beer' },
+                { id: 'beer2', name: 'Bali Hai Beer', type: 'beer', price: 32000, image: 'https://images.pexels.com/photos/5553935/pexels-photo-5553935.jpeg', alcoholPercentage: 4.8, volume: '330ml' },
+                { id: 'wine1', name: 'Red Wine', type: 'wine', price: 85000, image: 'https://images.pexels.com/photos/1407846/pexels-photo-1407846.jpeg', alcoholPercentage: 13.5, volume: '750ml', description: 'Full-bodied red wine' },
+                { id: 'cocktail1', name: 'Mojito', type: 'cocktail', price: 65000, image: 'https://images.pexels.com/photos/1304540/pexels-photo-1304540.jpeg', alcoholPercentage: 10, volume: '350ml', description: 'Fresh mint and lime cocktail' },
+                { id: 'spirits1', name: 'Arak Bali', type: 'spirits', price: 45000, image: 'https://images.pexels.com/photos/5946971/pexels-photo-5946971.jpeg', alcoholPercentage: 40, volume: '50ml', description: 'Traditional Balinese spirit' }
+            ]
+        },
+        whatsapp: '6281234567890'
     },
     { 
-        id: 'v2', name: 'Sate Ayam Pak Budi', type: 'food', address: 'Seminyak', street: 'Jl. Kayu Aya', rating: 4.9, distance: 2.5, headerImage: 'https://picsum.photos/seed/v2_header/800/200', image: 'https://picsum.photos/seed/v2/200/200', bio: "The best charcoal-grilled satay in Seminyak!", cuisine: "Satay / Grilled", likes: 58100, isLive: true,
+        id: 'v2', name: 'Sate Ayam Pak Budi', type: 'food', address: 'Seminyak', street: 'Jl. Kayu Aya', rating: 4.9, distance: 2.5, 
+        headerImage: 'https://picsum.photos/seed/v2_header/800/200', image: 'https://picsum.photos/seed/v2/200/200',
+        acceptedPaymentProviders: [PaymentProvider.BNI, PaymentProvider.BRI, PaymentProvider.DANA],
+        deliveryFee: 15000, // Rp 15,000
+        bio: "The best charcoal-grilled satay in Seminyak!", cuisine: "Satay / Grilled", likes: 58100, isLive: true,
         youtubeStreamId: 'jfKfPfyJRdk', // MOCK: Same demo stream
         dineInPromotion: {
             isActive: true,
@@ -68,7 +107,12 @@ export const VENDORS_DATA: Vendor[] = [
         ]
     },
     { 
-        id: 'v4', name: 'Gado-Gado Ibu Tini', type: 'food', address: 'Kuta', street: 'Jl. Legian', rating: 4.6, distance: 1.5, headerImage: 'https://picsum.photos/seed/v4_header/800/200', image: 'https://picsum.photos/seed/v4/200/200', bankDetails: { bankName: 'BRI', accountNumber: '999888777', accountHolder: 'Tini Rahayu' }, bio: "Fresh vegetables and the original peanut sauce recipe.", cuisine: "Vegetarian / Salad", likes: 8900, isLive: false,
+        id: 'v4', name: 'Gado-Gado Ibu Tini', type: 'food', address: 'Kuta', street: 'Jl. Legian', rating: 4.6, distance: 1.5, 
+        headerImage: 'https://picsum.photos/seed/v4_header/800/200', image: 'https://picsum.photos/seed/v4/200/200', 
+        bankDetails: { bankName: 'BRI', accountNumber: '999888777', accountHolder: 'Tini Rahayu' },
+        acceptedPaymentProviders: [PaymentProvider.BRI, PaymentProvider.GOPAY],
+        deliveryFee: 8000, // Rp 8,000
+        bio: "Fresh vegetables and the original peanut sauce recipe.", cuisine: "Vegetarian / Salad", likes: 8900, isLive: false,
         dineInPromotion: {
             isActive: true,
             percentage: 10,

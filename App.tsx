@@ -37,14 +37,17 @@ const App: React.FC = () => {
     // This script dynamically loads the Google Maps API.
     // The key is named `GOOGLE_MAPS_API_KEY` to distinguish it from the GenAI key.
     const GOOGLE_MAPS_API_KEY = 'AIzaSyCxqJxKLJapoRePJ8xz1wK2sqBUOdd7O2c'; // MODIFIED: Replaced process.env to prevent runtime crash
-    if (GOOGLE_MAPS_API_KEY) {
+    if (GOOGLE_MAPS_API_KEY && !window.google?.maps) {
         const script = document.createElement('script');
         // 'geometry' and 'places' libraries are needed for various app features
-        script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=geometry,places`;
+        script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=geometry,places&loading=async`;
         script.async = true;
+        script.defer = true;
         document.head.appendChild(script);
     } else {
-        console.warn('Google Maps API Key is not set in environment variables. Mapping features will be disabled.');
+        if (!GOOGLE_MAPS_API_KEY) {
+            console.warn('Google Maps API Key is not set in environment variables. Mapping features will be disabled.');
+        }
     }
   }, []); // Empty dependency array ensures this runs only once on mount
 

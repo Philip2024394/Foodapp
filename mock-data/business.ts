@@ -29,12 +29,18 @@ export const VENDORS_DATA: Vendor[] = [
             image: 'https://images.pexels.com/photos/1763075/pexels-photo-1763075.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750',
             startTime: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(), // Started 1 hour ago
             endTime: new Date(Date.now() + 3 * 60 * 60 * 1000).toISOString(), // Ends in 3 hours
-            isActive: true
+            isActive: false // Disabled to show scratch card game button
         },
         // Gold Membership with promotional video (using working video URL)
         membershipTier: MembershipTier.GOLD,
         membershipExpiry: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days from now
         promotionalVideoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4', // Sample video
+        // Scratch Card Game Settings
+        scratchCardSettings: {
+            maxDiscount: 20,
+            enabled: true,
+            selectedFreeItems: ['French Fries', 'Ice Tea', 'Coffee']
+        },
         discounts: [
             { id: 'd1', dayOfWeek: new Date().getDay(), percentage: 15, startTime: '00:00', endTime: '23:59' }
         ],

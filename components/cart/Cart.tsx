@@ -6,7 +6,8 @@ import { useCartContext } from '../../hooks/useCartContext';
 import { useNavigationContext } from '../../hooks/useNavigationContext';
 import { useAuthContext } from '../../hooks/useAuthContext';
 import { useDataContext } from '../../hooks/useDataContext';
-import { openWhatsAppChat, generateRestaurantOrderMessage, formatIndonesianCurrency } from '../../utils/whatsapp';
+import { openWhatsAppChat, generateRestaurantOrderMessage } from '../../utils/whatsapp';
+import { formatIndonesianCurrency } from '../../utils/formatters';
 import Modal from '../common/Modal';
 
 const Cart: React.FC = () => {

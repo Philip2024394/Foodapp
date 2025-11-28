@@ -36,11 +36,57 @@ interface VendorFeedItemProps {
     onOpenLiveStream: (vendor: Vendor) => void;
 }
 const VendorFeedItem: React.FC<VendorFeedItemProps> = ({ vendor, onOpenMenu, isMenuOpen, onCloseMenu, onMenuItemSelect, selectedMenuItemId, onMenuItemHandled, onActiveItemChange, onOpenLiveStream }) => {
-    const { streetFoodItems } = useDataContext();
+    const { streetFoodItems, updateVendorDetails } = useDataContext();
     const { selectVendor } = useNavigationContext();
     const [isShareMenuOpen, setIsShareMenuOpen] = useState(false);
     const [showShareProofModal, setShowShareProofModal] = useState(false);
     const [selectedPlatform, setSelectedPlatform] = useState<SocialPlatform | null>(null);
+    const [isLiked, setIsLiked] = useState(false);
+    const [floatingHearts, setFloatingHearts] = useState<{id: number, x: number}[]>([]);
+    const [showLikeReward, setShowLikeReward] = useState(false);
+    
+    const handleLike = () => {
+        if (!isLiked) {
+            setIsLiked(true);
+            
+            // Store like in localStorage with vendor ID to prevent re-liking
+            const likedVendors = JSON.parse(localStorage.getItem('likedVendors') || '[]');
+            if (!likedVendors.includes(vendor.id)) {
+                likedVendors.push(vendor.id);
+                localStorage.setItem('likedVendors', JSON.stringify(likedVendors));
+                
+                // Apply 5% discount for this vendor (stored for next order)
+                const discounts = JSON.parse(localStorage.getItem('likeDiscounts') || '{}');
+                discounts[vendor.id] = {
+                    percentage: 5,
+                    used: false,
+                    timestamp: Date.now()
+                };
+                localStorage.setItem('likeDiscounts', JSON.stringify(discounts));
+            }
+            
+            // Increment likes count
+            updateVendorDetails(vendor.id, {
+                likes: (vendor.likes || 0) + 1
+            });
+            
+            // Create floating hearts animation
+            const heartId = Date.now();
+            const randomX = Math.random() * 40 - 20;
+            setFloatingHearts(prev => [...prev, { id: heartId, x: randomX }]);
+            
+            setTimeout(() => {
+                setFloatingHearts(prev => prev.filter(h => h.id !== heartId));
+            }, 2000);
+            
+            // Show reward image for 5 seconds
+            setShowLikeReward(true);
+            setTimeout(() => {
+                setShowLikeReward(false);
+            }, 5000);
+        }
+    };
+    
     const menuItems = useMemo(() => 
         streetFoodItems.filter(item => item.vendorId === vendor.id && item.isAvailable)
     , [vendor.id, streetFoodItems]);
@@ -78,6 +124,14 @@ const VendorFeedItem: React.FC<VendorFeedItemProps> = ({ vendor, onOpenMenu, isM
     });
     const videoRef = useRef<HTMLVideoElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
+    
+    // Check if vendor was already liked on mount
+    useEffect(() => {
+        const likedVendors = JSON.parse(localStorage.getItem('likedVendors') || '[]');
+        if (likedVendors.includes(vendor.id)) {
+            setIsLiked(true);
+        }
+    }, [vendor.id]);
 
     const deliveryPrice = useMemo(() => {
         const BIKE_RATE_PER_KM_PARCEL = 3500; // Representative rate based on mock data
@@ -337,9 +391,28 @@ const VendorFeedItem: React.FC<VendorFeedItemProps> = ({ vendor, onOpenMenu, isM
                         </>
                     )}
                 </button>
-                <button className="flex flex-col items-center text-white">
-                    <HeartIcon className="w-8 h-8 text-white" />
+                <button 
+                    onClick={handleLike}
+                    className="flex flex-col items-center text-white relative"
+                >
+                    <HeartIcon className={`w-8 h-8 transition-all duration-300 ${
+                        isLiked ? 'text-red-500 scale-110' : 'text-white'
+                    }`} />
                     <span className="text-xs font-semibold">{formatCount(vendor.likes)}</span>
+                    
+                    {/* Floating Hearts Animation */}
+                    {floatingHearts.map(heart => (
+                        <div
+                            key={heart.id}
+                            className="absolute bottom-0 pointer-events-none"
+                            style={{
+                                left: `calc(50% + ${heart.x}px)`,
+                                animation: 'floatUp 2s ease-out forwards'
+                            }}
+                        >
+                            <span className="text-2xl">❤️</span>
+                        </div>
+                    ))}
                 </button>
                 <button 
                     onClick={() => setIsShareMenuOpen(!isShareMenuOpen)}
@@ -360,7 +433,7 @@ const VendorFeedItem: React.FC<VendorFeedItemProps> = ({ vendor, onOpenMenu, isM
             
             {/* Social Share Menu */}
             <div className={`absolute right-20 top-1/2 -translate-y-1/2 transition-all duration-300 ${isShareMenuOpen ? 'translate-x-0 opacity-100' : 'translate-x-20 opacity-0 pointer-events-none'}`}>
-                <div className="bg-black/80 backdrop-blur-md rounded-2xl p-3 space-y-3 border border-white/10 shadow-2xl">
+                <div className="p-4 space-y-3">
                     {/* WhatsApp */}
                     <button
                         onClick={() => {
@@ -510,6 +583,42 @@ const VendorFeedItem: React.FC<VendorFeedItemProps> = ({ vendor, onOpenMenu, isM
                     onSubmit={handleShareProofSubmit}
                 />
             )}
+            
+            {/* Like Reward Modal */}
+            {showLikeReward && (
+                <div 
+                    className="fixed inset-0 z-50 flex flex-col items-center justify-center pointer-events-none"
+                >
+                    <div className="text-center mb-2 relative">
+                        <h2 className="text-2xl font-bold text-yellow-400 drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)] animate-fade-in-scale">
+                            You Like Us
+                        </h2>
+                        <h3 className="text-xl font-bold text-yellow-400 mt-1 drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)] animate-fade-in-scale">
+                            We Like You
+                        </h3>
+                        
+                        {/* Exploding particles animation */}
+                        {[...Array(12)].map((_, i) => (
+                            <div
+                                key={i}
+                                className="absolute top-1/2 left-1/2 pointer-events-none"
+                                style={{
+                                    animation: `explode${i} 1.5s ease-out forwards`,
+                                    animationDelay: '0.2s'
+                                }}
+                            >
+                                <span className="text-2xl">✨</span>
+                            </div>
+                        ))}
+                    </div>
+                    
+                    <img 
+                        src="https://ik.imagekit.io/7grri5v7d/5__voucher-removebg-preview.png"
+                        alt="5% Discount Voucher"
+                        className="w-64 mx-auto drop-shadow-2xl animate-fade-in-scale"
+                    />
+                </div>
+            )}
         </div>
     );
 };
@@ -530,6 +639,7 @@ const StreetFood: React.FC = () => {
     const [liveStreamVendor, setLiveStreamVendor] = useState<Vendor | null>(null);
     const notificationTimeoutRef = useRef<number | null>(null);
     const [isCartDrawerOpen, setIsCartDrawerOpen] = useState(false);
+    const [cartTouchStart, setCartTouchStart] = useState<{x: number, y: number, time: number} | null>(null);
 
     const containerRef = useRef<HTMLDivElement>(null);
     const [currentVisibleVendorId, setCurrentVisibleVendorId] = useState<string | null>(null);
@@ -747,6 +857,31 @@ const StreetFood: React.FC = () => {
                             <div className="relative flex-shrink-0">
                                 <button
                                     type="button"
+                                    onTouchStart={(e) => {
+                                        const touch = e.touches[0];
+                                        setCartTouchStart({
+                                            x: touch.clientX,
+                                            y: touch.clientY,
+                                            time: Date.now()
+                                        });
+                                    }}
+                                    onTouchEnd={(e) => {
+                                        if (!cartTouchStart) return;
+                                        
+                                        const touch = e.changedTouches[0];
+                                        const deltaX = Math.abs(touch.clientX - cartTouchStart.x);
+                                        const deltaY = Math.abs(touch.clientY - cartTouchStart.y);
+                                        const deltaTime = Date.now() - cartTouchStart.time;
+                                        
+                                        // Only open cart if:
+                                        // 1. Touch duration is short (< 300ms) - not a swipe
+                                        // 2. Minimal movement (< 10px) - a tap, not a swipe
+                                        if (deltaTime < 300 && deltaX < 10 && deltaY < 10) {
+                                            setIsCartDrawerOpen(true);
+                                        }
+                                        
+                                        setCartTouchStart(null);
+                                    }}
                                     onClick={() => setIsCartDrawerOpen(true)}
                                     className={`flex items-center justify-center space-x-3 bg-amber-500 text-black font-bold h-12 px-4 rounded-full shadow-lg transition-transform hover:scale-105 animate-fade-in-scale ${showCartFlash ? 'animate-pulse' : ''}`}
                                     aria-label="View Order"

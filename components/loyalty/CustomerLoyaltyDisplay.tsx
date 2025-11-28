@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { UserLoyaltyPoints, EarnedReward, Vendor } from '../../types';
-import { GiftIcon, StarIcon, TrophyIcon, ClockIcon, CheckCircleIcon, PercentIcon } from '../common/Icon';
+import { GiftIcon, StarIcon, ClockIcon, CheckCircleIcon } from '../common/Icon';
 import { formatIndonesianCurrency } from '../../utils/formatters';
 
 interface CustomerLoyaltyDisplayProps {
@@ -238,7 +238,7 @@ const CustomerLoyaltyDisplay: React.FC<CustomerLoyaltyDisplayProps> = ({
       {/* How It Works */}
       <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-2xl p-6 border border-blue-100">
         <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-          <TrophyIcon className="h-5 w-5 text-blue-600" />
+          <StarIcon className="h-5 w-5 text-blue-600" />
           How Loyalty Points Work
         </h3>
         <div className="space-y-3 text-sm text-gray-700">

@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { GroupOrder, GroupOrderParticipant, GroupOrderStatus, CartItem, Vendor, PaymentMethod } from '../../types';
-import { UsersIcon, PlusIcon, ShareIcon, ClockIcon, CheckCircleIcon, XMarkIcon, CloseIcon, LocationPinIcon, CreditCardIcon } from '../common/Icon';
+import { PlusIcon, ClockIcon, CheckCircleIcon, CloseIcon, LocationPinIcon } from '../common/Icon';
 import { formatIndonesianCurrency } from '../../utils/formatters';
 
 interface GroupOrderModalProps {
@@ -137,7 +137,7 @@ const GroupOrderModal: React.FC<GroupOrderModalProps> = ({
 
             <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
               <h3 className="font-bold text-blue-900 mb-2 flex items-center gap-2">
-                <UsersIcon className="h-5 w-5" />
+                <span className="text-xl">👥</span>
                 How it works:
               </h3>
               <ul className="space-y-2 text-sm text-blue-800">
@@ -191,7 +191,7 @@ const GroupOrderModal: React.FC<GroupOrderModalProps> = ({
           {/* Status Banner */}
           <div className="flex items-center justify-between bg-white/20 backdrop-blur-sm rounded-lg p-3">
             <div className="flex items-center gap-2">
-              <UsersIcon className="h-5 w-5" />
+              <span className="text-xl">👥</span>
               <span className="font-semibold">{groupOrder.participants.length} Participant{groupOrder.participants.length !== 1 ? 's' : ''}</span>
             </div>
             {groupOrder.status === GroupOrderStatus.OPEN && groupOrder.expiresAt && (
@@ -215,7 +215,7 @@ const GroupOrderModal: React.FC<GroupOrderModalProps> = ({
         {isCoordinator && groupOrder.status === GroupOrderStatus.OPEN && (
           <div className="p-4 bg-yellow-50 border-b border-yellow-200">
             <div className="flex items-center gap-3">
-              <ShareIcon className="h-5 w-5 text-yellow-600 flex-shrink-0" />
+              <span className="text-xl flex-shrink-0">🔗</span>
               <div className="flex-1">
                 <div className="text-sm font-bold text-yellow-900">Share this link with friends:</div>
                 <div className="text-xs text-yellow-700 font-mono bg-white px-2 py-1 rounded mt-1 truncate">
@@ -301,7 +301,7 @@ const GroupOrderModal: React.FC<GroupOrderModalProps> = ({
 
           {groupOrder.participants.length === 0 && (
             <div className="text-center py-12 text-gray-400">
-              <UsersIcon className="h-12 w-12 mx-auto mb-3 opacity-30" />
+              <span className="text-5xl opacity-30 block mb-3">👥</span>
               <p>No participants yet. Share the link to invite friends!</p>
             </div>
           )}
@@ -362,7 +362,7 @@ const GroupOrderModal: React.FC<GroupOrderModalProps> = ({
           <div className="absolute inset-0 bg-black/50 flex items-center justify-center p-4 z-10">
             <div className="bg-white rounded-2xl p-6 w-full max-w-sm">
               <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-                <CreditCardIcon className="h-6 w-6 text-blue-600" />
+                <span className="text-2xl">💳</span>
                 Select Payment Method
               </h3>
               <div className="space-y-3">

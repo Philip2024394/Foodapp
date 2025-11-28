@@ -12,6 +12,7 @@ export enum Page {
   PROFILE = 'PROFILE',
   REVIEWS = 'REVIEWS',
   RESTAURANT_DASHBOARD = 'RESTAURANT_DASHBOARD',
+  PROMO_VIDEOS = 'PROMO_VIDEOS',
 }
 
 export enum VehicleType {
@@ -70,6 +71,24 @@ export enum ReviewEmoji {
   NEUTRAL = 'neutral',
   HAPPY = 'happy',
   EXCITED = 'excited'
+}
+
+export enum FreeItemType {
+  FRENCH_FRIES = 'French Fries',
+  RICE = 'Rice',
+  CRACKERS = 'Crackers',
+  ICE_TEA = 'Ice Tea',
+  SODA_ORANGE = 'Soda Orange',
+  SODA_COLA = 'Soda Cola',
+  COLA_SODA = 'Cola Soda',
+  JUICE_ORANGE = 'Juice Orange',
+  JUICE_APPLE = 'Juice Apple',
+  ICE_CREAM = 'Ice Cream',
+  COFFEE = 'Coffee',
+  CAKE = 'Cake',
+  SALAD = 'Salad',
+  NOODLE = 'Noodle',
+  SOUP = 'Soup'
 }
 
 export enum GroupOrderStatus {
@@ -533,6 +552,12 @@ export interface Vendor {
   membershipTier?: MembershipTier;
   membershipExpiry?: string; // ISO date string
   membershipPurchaseDate?: string; // ISO date string
+  // Scratch card game configuration
+  scratchCardSettings?: {
+    maxDiscount: number; // Maximum discount percentage (5-30%)
+    enabled: boolean; // Toggle to enable/disable the game
+    selectedFreeItems?: FreeItemType[]; // Which free items restaurant wants to offer
+  };
 }
 
 export interface RoomAmenities {

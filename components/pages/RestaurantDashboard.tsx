@@ -92,6 +92,11 @@ const RestaurantDashboard: React.FC = () => {
     const [selectedPackage, setSelectedPackage] = useState<MembershipTier | null>(null);
     const [uploadedContent, setUploadedContent] = useState<string>('');
     const [contentType, setContentType] = useState<'image' | 'video'>('image');
+    const [videoFile, setVideoFile] = useState<File | null>(null);
+    const [videoPreviewUrl, setVideoPreviewUrl] = useState<string>('');
+    const [isUploadingVideo, setIsUploadingVideo] = useState(false);
+    const [videoDuration, setVideoDuration] = useState<number>(0);
+    const videoInputRef = useRef<HTMLInputElement>(null);
     const [editFormData, setEditFormData] = useState<Partial<Vendor>>({});
     const [bankFormData, setBankFormData] = useState({
         bankName: '',
@@ -1601,169 +1606,303 @@ const RestaurantDashboard: React.FC = () => {
                         <div className="bg-gradient-to-r from-fuchsia-500/20 to-violet-500/20 border-2 border-fuchsia-500/30 rounded-2xl p-6">
                             <h2 className="text-2xl font-bold text-white mb-3 flex items-center gap-3">
                                 <span className="text-3xl">🎟️</span>
-                                Voucher Banners for Customer Profile
+                                Scratch Card Game for Customer Profile
                             </h2>
                             <p className="text-stone-300 text-lg mb-4">
-                                Upload promotional banners that appear on the back of your restaurant profile card (flip side). Customers see these vouchers when they flip your profile.
+                                Turn your profile flip card into an engaging game! Customers select 3 boxes from 9 mystery boxes. Match 3 same percentages to win a discount on their bill.
                             </p>
                             <div className="grid md:grid-cols-3 gap-4 text-sm">
                                 <div className="bg-white/10 rounded-lg p-3">
-                                    <div className="font-bold text-pink-400 mb-1">🎨 Custom Banners</div>
-                                    <div className="text-stone-400">Upload your promotional designs</div>
+                                    <div className="font-bold text-pink-400 mb-1">🎮 Interactive Game</div>
+                                    <div className="text-stone-400">Select 3 boxes to reveal discounts</div>
                                 </div>
                                 <div className="bg-white/10 rounded-lg p-3">
-                                    <div className="font-bold text-purple-400 mb-1">🔄 Flip Card Display</div>
-                                    <div className="text-stone-400">Shows on back of profile card</div>
+                                    <div className="font-bold text-purple-400 mb-1">🎯 Match to Win</div>
+                                    <div className="text-stone-400">3 matching percentages = discount applied</div>
                                 </div>
                                 <div className="bg-white/10 rounded-lg p-3">
-                                    <div className="font-bold text-violet-400 mb-1">🎯 Customer Attraction</div>
-                                    <div className="text-stone-400">Eye-catching deals & offers</div>
+                                    <div className="font-bold text-violet-400 mb-1">⏱️ Fair Play</div>
+                                    <div className="text-stone-400">1-minute cooldown on loss</div>
                                 </div>
                             </div>
                         </div>
 
-                        <h2 className="text-3xl font-bold text-white mb-4">🎟️ Manage Voucher Banners</h2>
+                        <h2 className="text-3xl font-bold text-white mb-4">
+                            <span className="inline-flex items-center gap-2">
+                                🎰 Scratch Card Game Settings
+                                <span className="bg-gradient-to-r from-yellow-400 to-amber-500 text-black px-3 py-1 rounded-full text-sm font-black">
+                                    👑 GOLD ONLY
+                                </span>
+                            </span>
+                        </h2>
 
-                        {/* Upload New Banner */}
+                        {/* Gold Member Check */}
+                        {vendor.membershipTier !== 'gold' ? (
+                            <div className="bg-gradient-to-br from-yellow-500/10 to-amber-500/10 border-2 border-yellow-500/30 rounded-xl p-8 text-center">
+                                <div className="text-6xl mb-4">👑</div>
+                                <h3 className="text-2xl font-bold text-yellow-400 mb-3">Premium Gold Feature</h3>
+                                <p className="text-stone-300 mb-6 max-w-2xl mx-auto">
+                                    The Scratch Card Game is an exclusive feature for Gold tier members. Engage customers with an interactive game where they can win custom discounts and free menu items!
+                                </p>
+                                
+                                <div className="grid md:grid-cols-3 gap-4 mb-6 max-w-3xl mx-auto">
+                                    <div className="bg-black/30 rounded-lg p-4">
+                                        <div className="text-3xl mb-2">🎮</div>
+                                        <div className="text-white font-semibold text-sm">Interactive Match-3 Game</div>
+                                    </div>
+                                    <div className="bg-black/30 rounded-lg p-4">
+                                        <div className="text-3xl mb-2">🎁</div>
+                                        <div className="text-white font-semibold text-sm">Discounts + Free Items</div>
+                                    </div>
+                                    <div className="bg-black/30 rounded-lg p-4">
+                                        <div className="text-3xl mb-2">📈</div>
+                                        <div className="text-white font-semibold text-sm">Boost Engagement</div>
+                                    </div>
+                                </div>
+
+                                <button 
+                                    onClick={() => {/* Navigate to upgrade page */}}
+                                    className="bg-gradient-to-r from-yellow-400 to-amber-500 text-black font-bold px-8 py-3 rounded-full hover:scale-105 transition-transform"
+                                >
+                                    ✨ Upgrade to Gold Tier
+                                </button>
+                            </div>
+                        ) : (
+                            <>
+                                {/* Enable/Disable Game */}
                         <div className="bg-gradient-to-br from-fuchsia-500/10 to-violet-500/10 border-2 border-fuchsia-500/30 rounded-xl p-6">
-                            <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-                                📤 Upload New Voucher Banner
-                            </h3>
-                            <div className="space-y-4">
+                            <div className="flex items-center justify-between mb-6">
                                 <div>
-                                    <label className="block text-sm font-medium text-stone-400 mb-2">
-                                        Banner Image URL
-                                    </label>
-                                    <input
-                                        type="text"
-                                        value={voucherBannerUrl}
-                                        onChange={(e) => setVoucherBannerUrl(e.target.value)}
-                                        placeholder="https://example.com/voucher-banner.jpg"
-                                        className="w-full p-3 bg-white border border-stone-700 rounded-lg text-white focus:outline-none focus:border-fuchsia-500"
-                                    />
-                                    <p className="text-xs text-stone-500 mt-1">
-                                        💡 Recommended size: 800x400px (2:1 ratio) for best display
-                                    </p>
+                                    <h3 className="text-xl font-bold text-white">Enable Scratch Card Game</h3>
+                                    <p className="text-stone-400 text-sm">Let customers play to win discounts on your profile flip card</p>
                                 </div>
                                 <button
                                     onClick={() => {
-                                        if (voucherBannerUrl.trim()) {
-                                            setVoucherBanners([...voucherBanners, voucherBannerUrl]);
-                                            setVoucherBannerUrl('');
-                                            alert('Voucher banner added! Don\'t forget to save changes.');
-                                        }
+                                        const newEnabled = !vendor.scratchCardSettings?.enabled;
+                                        updateVendorDetails({
+                                            scratchCardSettings: {
+                                                maxDiscount: vendor.scratchCardSettings?.maxDiscount || 10,
+                                                enabled: newEnabled
+                                            }
+                                        });
                                     }}
-                                    className="w-full p-3 bg-gradient-to-r from-fuchsia-500 to-violet-500 text-white font-bold rounded-lg hover:from-fuchsia-600 hover:to-violet-600 transition-all"
+                                    className={`relative w-16 h-8 rounded-full transition-all ${
+                                        vendor.scratchCardSettings?.enabled 
+                                            ? 'bg-gradient-to-r from-fuchsia-500 to-violet-500' 
+                                            : 'bg-stone-600'
+                                    }`}
                                 >
-                                    ➕ Add Banner
+                                    <div className={`absolute top-1 w-6 h-6 bg-white rounded-full transition-transform ${
+                                        vendor.scratchCardSettings?.enabled ? 'translate-x-9' : 'translate-x-1'
+                                    }`} />
                                 </button>
                             </div>
-                        </div>
 
-                        {/* Banner Gallery */}
-                        <div className="bg-stone-800/50 rounded-xl p-6 border border-stone-700">
-                            <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-                                🖼️ Your Voucher Banners ({voucherBanners.length})
-                            </h3>
-                            {voucherBanners.length === 0 ? (
-                                <div className="text-center py-12 text-stone-400">
-                                    <div className="text-6xl mb-4">🎟️</div>
-                                    <p className="text-lg">No voucher banners yet</p>
-                                    <p className="text-sm mt-2">Upload promotional banners to appear on your profile flip card</p>
-                                </div>
-                            ) : (
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    {voucherBanners.map((banner, index) => (
-                                        <div key={index} className="relative group">
-                                            <div className={`border-4 rounded-xl overflow-hidden transition-all ${
-                                                selectedBanner === banner 
-                                                    ? 'border-fuchsia-500 shadow-lg shadow-fuchsia-500/50' 
-                                                    : 'border-stone-700 hover:border-stone-600'
-                                            }`}>
-                                                <img 
-                                                    src={banner} 
-                                                    alt={`Voucher Banner ${index + 1}`}
-                                                    className="w-full h-48 object-cover cursor-pointer"
-                                                    onClick={() => setSelectedBanner(banner === selectedBanner ? null : banner)}
-                                                />
-                                            </div>
-                                            <div className="absolute top-2 right-2 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                <button
-                                                    onClick={() => {
-                                                        if (confirm('Remove this voucher banner?')) {
-                                                            setVoucherBanners(voucherBanners.filter((_, i) => i !== index));
-                                                            if (selectedBanner === banner) setSelectedBanner(null);
+                            {vendor.scratchCardSettings?.enabled && (
+                                <div className="space-y-6">
+                                    {/* Max Discount Slider */}
+                                    <div>
+                                        <label className="block text-sm font-medium text-stone-300 mb-3">
+                                            Maximum Discount Percentage
+                                        </label>
+                                        <div className="flex items-center gap-4">
+                                            <input
+                                                type="range"
+                                                min="5"
+                                                max="30"
+                                                step="5"
+                                                value={vendor.scratchCardSettings?.maxDiscount || 10}
+                                                onChange={(e) => {
+                                                    updateVendorDetails({
+                                                        scratchCardSettings: {
+                                                            maxDiscount: parseInt(e.target.value),
+                                                            enabled: vendor.scratchCardSettings?.enabled || true
                                                         }
-                                                    }}
-                                                    className="p-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-all shadow-lg"
-                                                >
-                                                    🗑️
-                                                </button>
+                                                    });
+                                                }}
+                                                className="flex-1 h-3 bg-stone-700 rounded-lg appearance-none cursor-pointer 
+                                                [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-6 [&::-webkit-slider-thumb]:h-6 
+                                                [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-gradient-to-r 
+                                                [&::-webkit-slider-thumb]:from-fuchsia-500 [&::-webkit-slider-thumb]:to-violet-500 
+                                                [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:shadow-lg"
+                                            />
+                                            <div className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-fuchsia-400 to-violet-400 w-20 text-center">
+                                                {vendor.scratchCardSettings?.maxDiscount || 10}%
                                             </div>
-                                            {selectedBanner === banner && (
-                                                <div className="absolute bottom-2 left-2 bg-fuchsia-500 text-white px-3 py-1 rounded-full text-xs font-bold">
-                                                    ✓ Selected for Display
-                                                </div>
-                                            )}
                                         </div>
-                                    ))}
+                                        <div className="flex justify-between text-xs text-stone-500 mt-2">
+                                            <span>5% (Conservative)</span>
+                                            <span>15% (Balanced)</span>
+                                            <span>30% (Generous)</span>
+                                        </div>
+                                        <p className="text-xs text-stone-400 mt-3 bg-stone-800/50 rounded-lg p-3">
+                                            💡 This is the highest discount percentage customers can win. Lower percentages (5%, 10%, 15%) appear more frequently in the game.
+                                        </p>
+                                    </div>
+
+                                    {/* Free Items Selection */}
+                                    <div className="bg-stone-800/50 rounded-xl p-4 border border-stone-700">
+                                        <h4 className="font-bold text-white mb-3">🎁 Select Free Items to Offer</h4>
+                                        <p className="text-xs text-stone-400 mb-4">
+                                            Choose which free items customers can win in the scratch card game. Selected items will be included in the game rewards.
+                                        </p>
+                                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                                            {[
+                                                { type: 'French Fries' as const, image: 'https://ik.imagekit.io/7grri5v7d/french%20fries.png' },
+                                                { type: 'Rice' as const, image: 'https://ik.imagekit.io/7grri5v7d/Boiled%20Rice.png' },
+                                                { type: 'Crackers' as const, image: 'https://ik.imagekit.io/7grri5v7d/crackers.png' },
+                                                { type: 'Ice Tea' as const, image: 'https://ik.imagekit.io/7grri5v7d/ice-tea.png' },
+                                                { type: 'Soda Orange' as const, image: 'https://ik.imagekit.io/7grri5v7d/lemon%20soda.png' },
+                                                { type: 'Soda Cola' as const, image: 'https://ik.imagekit.io/7grri5v7d/Orange%20soda.png' },
+                                                { type: 'Cola Soda' as const, image: 'https://ik.imagekit.io/7grri5v7d/cola%20soda.png' },
+                                                { type: 'Juice Orange' as const, image: 'https://ik.imagekit.io/7grri5v7d/orange%20juice.png' },
+                                                { type: 'Juice Apple' as const, image: 'https://ik.imagekit.io/7grri5v7d/apple%20juice.png' },
+                                                { type: 'Ice Cream' as const, image: 'https://ik.imagekit.io/7grri5v7d/icecream.png' },
+                                                { type: 'Coffee' as const, image: 'https://ik.imagekit.io/7grri5v7d/free%20coffee.png' },
+                                                { type: 'Cake' as const, image: 'https://ik.imagekit.io/7grri5v7d/cake.png' },
+                                                { type: 'Salad' as const, image: 'https://ik.imagekit.io/7grri5v7d/free%20salade.png' },
+                                                { type: 'Noodle' as const, image: 'https://ik.imagekit.io/7grri5v7d/free%20noodle.png' },
+                                                { type: 'Soup' as const, image: 'https://ik.imagekit.io/7grri5v7d/free%20soup.png' }
+                                            ].map((item) => {
+                                                const isSelected = vendor.scratchCardSettings?.selectedFreeItems?.includes(item.type) || false;
+                                                return (
+                                                    <button
+                                                        key={item.type}
+                                                        onClick={() => {
+                                                            const currentItems = vendor.scratchCardSettings?.selectedFreeItems || [];
+                                                            const newItems = isSelected
+                                                                ? currentItems.filter(i => i !== item.type)
+                                                                : [...currentItems, item.type];
+                                                            updateVendorDetails({
+                                                                scratchCardSettings: {
+                                                                    maxDiscount: vendor.scratchCardSettings?.maxDiscount || 10,
+                                                                    enabled: vendor.scratchCardSettings?.enabled || true,
+                                                                    selectedFreeItems: newItems
+                                                                }
+                                                            });
+                                                        }}
+                                                        className={`relative p-3 rounded-lg border-2 transition-all ${
+                                                            isSelected
+                                                                ? 'border-green-500 bg-green-500/20 shadow-lg shadow-green-500/20'
+                                                                : 'border-stone-600 bg-stone-700/50 hover:border-stone-500'
+                                                        }`}
+                                                    >
+                                                        {isSelected && (
+                                                            <div className="absolute top-1 right-1 bg-green-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">
+                                                                ✓
+                                                            </div>
+                                                        )}
+                                                        <img 
+                                                            src={item.image} 
+                                                            alt={item.type}
+                                                            className="w-full aspect-square object-contain mb-2"
+                                                        />
+                                                        <div className="text-xs font-semibold text-white text-center">
+                                                            {item.type}
+                                                        </div>
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                        <p className="text-xs text-stone-500 mt-3">
+                                            Selected: {vendor.scratchCardSettings?.selectedFreeItems?.length || 0} items
+                                        </p>
+                                    </div>
+
+                                    {/* Game Probability Info */}
+                                    <div className="bg-stone-800/50 rounded-xl p-4 border border-stone-700">
+                                        <h4 className="font-bold text-white mb-3 flex items-center gap-2">
+                                            📊 Game Probability Distribution
+                                        </h4>
+                                        <div className="space-y-2 text-sm">
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-stone-400">5% Discount</span>
+                                                <div className="flex items-center gap-2">
+                                                    <div className="w-32 h-2 bg-stone-700 rounded-full overflow-hidden">
+                                                        <div className="w-1/2 h-full bg-green-500"></div>
+                                                    </div>
+                                                    <span className="text-green-400 font-bold w-12">50%</span>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-stone-400">10% Discount</span>
+                                                <div className="flex items-center gap-2">
+                                                    <div className="w-32 h-2 bg-stone-700 rounded-full overflow-hidden">
+                                                        <div className="w-[30%] h-full bg-yellow-500"></div>
+                                                    </div>
+                                                    <span className="text-yellow-400 font-bold w-12">30%</span>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-stone-400">15% Discount</span>
+                                                <div className="flex items-center gap-2">
+                                                    <div className="w-32 h-2 bg-stone-700 rounded-full overflow-hidden">
+                                                        <div className="w-[15%] h-full bg-orange-500"></div>
+                                                    </div>
+                                                    <span className="text-orange-400 font-bold w-12">15%</span>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center justify-between">
+                                                <span className="text-stone-400">{vendor.scratchCardSettings?.maxDiscount || 10}% Discount (Max)</span>
+                                                <div className="flex items-center gap-2">
+                                                    <div className="w-32 h-2 bg-stone-700 rounded-full overflow-hidden">
+                                                        <div className="w-[5%] h-full bg-red-500"></div>
+                                                    </div>
+                                                    <span className="text-red-400 font-bold w-12">5%</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <p className="text-xs text-stone-500 mt-3">
+                                            These probabilities ensure fair gameplay while protecting your profit margins. Lower discounts appear more often.
+                                        </p>
+                                    </div>
                                 </div>
                             )}
                         </div>
 
-                        {/* Preview Card */}
-                        {selectedBanner && (
-                            <div className="bg-gradient-to-br from-fuchsia-500/10 to-violet-500/10 border-2 border-fuchsia-500/30 rounded-xl p-6">
-                                <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-                                    👁️ Preview: How It Appears on Profile Flip Card
-                                </h3>
-                                <div className="bg-white rounded-xl p-4 max-w-md mx-auto">
-                                    <div className="text-center mb-3 text-stone-400 text-sm">
-                                        Customer flips your profile card 🔄
-                                    </div>
-                                    <img 
-                                        src={selectedBanner} 
-                                        alt="Selected Voucher Banner"
-                                        className="w-full rounded-lg shadow-2xl"
-                                    />
-                                    <div className="text-center mt-3 text-stone-400 text-xs">
-                                        This banner appears on the back of your restaurant profile card
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-
                         {/* Info Cards */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="bg-stone-800/50 rounded-xl p-4 border border-stone-700">
-                                <h4 className="font-bold text-white mb-2">💡 How It Works</h4>
+                                <h4 className="font-bold text-white mb-2">🎮 How It Works</h4>
                                 <ul className="text-sm text-stone-400 space-y-1">
-                                    <li>• Upload promotional banner images</li>
-                                    <li>• Select which banner to display</li>
-                                    <li>• Customers see it when flipping your profile</li>
-                                    <li>• Update banners anytime with new offers</li>
+                                    <li>• Customer flips your profile card to see game</li>
+                                    <li>• They select 3 boxes from 20 mystery boxes</li>
+                                    <li>• Each box reveals a discount or free item</li>
+                                    <li>• If all 3 match → They win that reward!</li>
+                                    <li>• If no match → 1-minute cooldown before retry</li>
                                 </ul>
                             </div>
                             <div className="bg-stone-800/50 rounded-xl p-4 border border-stone-700">
-                                <h4 className="font-bold text-white mb-2">🎨 Design Tips</h4>
+                                <h4 className="font-bold text-white mb-2">💎 Benefits</h4>
                                 <ul className="text-sm text-stone-400 space-y-1">
-                                    <li>• Use 800x400px size (2:1 ratio)</li>
-                                    <li>• Include clear text and offers</li>
-                                    <li>• Bright colors catch attention</li>
-                                    <li>• Add expiry dates for urgency</li>
+                                    <li>• 🎯 Increases customer engagement</li>
+                                    <li>• 🎊 Creates excitement and fun</li>
+                                    <li>• 🍟 Offer free items + discounts</li>
+                                    <li>• 🎰 14 free items + 4 discount tiers</li>
+                                    <li>• 💰 Drives more orders with discounts</li>
+                                    <li>• 🔄 Encourages profile visits</li>
+                                    <li>• ⚖️ Fair cooldown prevents abuse</li>
                                 </ul>
                             </div>
                         </div>
+                        </>
+                        )}
 
-                        <button
-                            onClick={() => {
-                                // In real app, save voucherBanners to vendor profile
-                                alert(`Voucher banners saved! ${voucherBanners.length} banner(s) configured.`);
-                            }}
-                            className="w-full p-4 bg-gradient-to-r from-fuchsia-500 to-violet-500 text-white font-bold text-xl rounded-xl hover:from-fuchsia-600 hover:to-violet-600 transition-all shadow-lg"
-                        >
-                            💾 Save Voucher Banners
-                        </button>
+                        {vendor.scratchCardSettings?.enabled && vendor.membershipTier === 'gold' && (
+                            <div className="bg-gradient-to-r from-green-500/20 to-emerald-500/20 border-2 border-green-500/30 rounded-xl p-6">
+                                <div className="text-center">
+                                    <div className="text-5xl mb-3">✅</div>
+                                    <h3 className="text-2xl font-bold text-white mb-2">Scratch Card Game is Active!</h3>
+                                    <p className="text-stone-300 mb-4">
+                                        Customers can now play the scratch card game when they flip your profile card. 
+                                        Maximum discount: <span className="text-green-400 font-bold">{vendor.scratchCardSettings?.maxDiscount}%</span>
+                                    </p>
+                                    <p className="text-xs text-stone-400">
+                                        💡 You can adjust the max discount or disable the game anytime using the toggle above.
+                                    </p>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 )}
                 
@@ -2453,16 +2592,16 @@ const RestaurantDashboard: React.FC = () => {
                                 Membership & Promotional Content
                             </h2>
                             <p className="text-stone-300 text-lg mb-4">
-                                Upgrade to Silver or Gold membership to feature promotional images or videos on the main discovery feed.
+                                All restaurants can upload full-screen promotional images. Upgrade to Gold membership to unlock video uploads!
                             </p>
                             <div className="grid md:grid-cols-3 gap-4 text-sm">
                                 <div className="bg-white/10 rounded-lg p-3">
-                                    <div className="font-bold text-gray-400 mb-1">🥈 Silver</div>
+                                    <div className="font-bold text-green-400 mb-1">🆓 Free</div>
                                     <div className="text-stone-400">Upload promotional images</div>
                                 </div>
                                 <div className="bg-white/10 rounded-lg p-3">
                                     <div className="font-bold text-yellow-400 mb-1">🥇 Gold</div>
-                                    <div className="text-stone-400">Upload 15-second videos</div>
+                                    <div className="text-stone-400">Upload 10-second videos</div>
                                 </div>
                                 <div className="bg-white/10 rounded-lg p-3">
                                     <div className="font-bold text-purple-400 mb-1">⬆️ Priority</div>
@@ -2499,7 +2638,7 @@ const RestaurantDashboard: React.FC = () => {
                                     <p className="text-stone-300 text-lg mb-4">{pkg.description}</p>
                                     <div className="space-y-2">
                                         <p className="text-stone-400 text-lg">
-                                            ✓ {pkg.features.promotionalContent === 'video' ? '📹 Video upload (15s max)' : '📷 Image upload'}
+                                            ✓ {pkg.features.promotionalContent === 'video' ? '📹 Video upload (10s max)' : '📷 Image upload'}
                                         </p>
                                         {pkg.features.priorityListing && (
                                             <p className="text-stone-400 text-lg">✓ ⬆️ Priority listing</p>
@@ -2522,6 +2661,286 @@ const RestaurantDashboard: React.FC = () => {
                                 </div>
                             ))}
                         </div>
+
+                        {/* Image Upload Section - Available for All Restaurants */}
+                        <div className="mt-8 bg-gradient-to-r from-blue-500/20 to-cyan-500/20 border-2 border-blue-500/30 rounded-2xl p-6">
+                            <h2 className="text-2xl font-bold text-white mb-3 flex items-center gap-3">
+                                <span className="text-3xl">🖼️</span>
+                                Upload Promotional Image
+                            </h2>
+                            <p className="text-stone-300 text-lg mb-6">
+                                Upload a full-screen promotional image for your restaurant. This will appear in the swipe feed!
+                            </p>
+
+                            {/* Current Image Display */}
+                            {vendor.promotionalImage && (
+                                <div className="mb-6 bg-black/30 rounded-xl p-4">
+                                    <p className="text-white font-bold mb-3 flex items-center gap-2">
+                                        <span className="text-green-400">✓</span> Current Promotional Image
+                                    </p>
+                                    <img 
+                                        src={vendor.promotionalImage}
+                                        alt="Promotional"
+                                        className="w-full max-w-md mx-auto rounded-lg"
+                                    />
+                                    <button
+                                        onClick={() => {
+                                            if (confirm('Remove current promotional image?')) {
+                                                updateVendorDetails(vendor.id, { promotionalImage: '' });
+                                            }
+                                        }}
+                                        className="mt-4 px-4 py-2 bg-red-500/20 border border-red-500 text-red-400 rounded-lg hover:bg-red-500/30 transition-all"
+                                    >
+                                        🗑️ Remove Image
+                                    </button>
+                                </div>
+                            )}
+
+                            {/* Image URL Input */}
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="block text-white font-bold mb-2">Image URL</label>
+                                    <div className="flex gap-3">
+                                        <input
+                                            type="text"
+                                            value={uploadedContent}
+                                            onChange={(e) => setUploadedContent(e.target.value)}
+                                            placeholder="https://your-cdn.com/image.jpg"
+                                            className="flex-1 p-3 bg-black/50 border-2 border-stone-600 rounded-xl text-white placeholder-stone-500"
+                                        />
+                                        <button
+                                            onClick={() => {
+                                                if (!uploadedContent) {
+                                                    alert('Please enter an image URL');
+                                                    return;
+                                                }
+                                                updateVendorDetails(vendor.id, {
+                                                    promotionalImage: uploadedContent
+                                                });
+                                                setUploadedContent('');
+                                                alert('✅ Image saved successfully!');
+                                            }}
+                                            className="px-6 py-3 bg-blue-500 text-white font-bold rounded-xl hover:bg-blue-600 transition-all"
+                                        >
+                                            💾 Save Image
+                                        </button>
+                                    </div>
+                                    <p className="text-stone-400 text-sm mt-2">
+                                        🌐 Free for all restaurants | Recommended: 1080x1920 (9:16 aspect ratio)
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Video Upload Section for Gold Members */}
+                        {vendor.membershipTier === MembershipTier.GOLD && (
+                            <div className="mt-8 bg-gradient-to-r from-purple-500/20 to-pink-500/20 border-2 border-purple-500/30 rounded-2xl p-6">
+                                <h2 className="text-2xl font-bold text-white mb-3 flex items-center gap-3">
+                                    <span className="text-3xl">📹</span>
+                                    Upload Promotional Video
+                                </h2>
+                                <p className="text-stone-300 text-lg mb-6">
+                                    Upload your 10-second restaurant promotional video. This will appear in the TikTok-style video feed when customers open the app!
+                                </p>
+
+                                {/* Current Video Display */}
+                                {vendor.promotionalVideoUrl && (
+                                    <div className="mb-6 bg-black/30 rounded-xl p-4">
+                                        <p className="text-white font-bold mb-3 flex items-center gap-2">
+                                            <span className="text-green-400">✓</span> Current Promotional Video
+                                        </p>
+                                        <video 
+                                            src={vendor.promotionalVideoUrl}
+                                            controls
+                                            className="w-full max-w-md mx-auto rounded-lg"
+                                            style={{ aspectRatio: '9/16', maxHeight: '400px' }}
+                                        />
+                                        <button
+                                            onClick={() => {
+                                                if (confirm('Remove current promotional video?')) {
+                                                    updateVendorDetails(vendor.id, { promotionalVideoUrl: '' });
+                                                }
+                                            }}
+                                            className="mt-4 px-4 py-2 bg-red-500/20 border border-red-500 text-red-400 rounded-lg hover:bg-red-500/30 transition-all"
+                                        >
+                                            🗑️ Remove Video
+                                        </button>
+                                    </div>
+                                )}
+
+                                {/* Video Upload Form */}
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="block text-white font-bold mb-2">Upload Video File</label>
+                                        <input
+                                            ref={videoInputRef}
+                                            type="file"
+                                            accept="video/mp4,video/mov,video/avi,video/webm"
+                                            onChange={(e) => {
+                                                const file = e.target.files?.[0];
+                                                if (file) {
+                                                    // Validate file size (50MB max)
+                                                    if (file.size > 50 * 1024 * 1024) {
+                                                        alert('Video file size must be less than 50MB');
+                                                        return;
+                                                    }
+
+                                                    // Create preview URL
+                                                    const url = URL.createObjectURL(file);
+                                                    setVideoFile(file);
+                                                    setVideoPreviewUrl(url);
+
+                                                    // Check video duration
+                                                    const video = document.createElement('video');
+                                                    video.preload = 'metadata';
+                                                    video.onloadedmetadata = () => {
+                                                        window.URL.revokeObjectURL(video.src);
+                                                        const duration = video.duration;
+                                                        setVideoDuration(duration);
+                                                        
+                                                        if (duration > 10.5) {
+                                                            alert(`Video is ${duration.toFixed(1)}s long. Please upload a video that is 10 seconds or less.`);
+                                                            setVideoFile(null);
+                                                            setVideoPreviewUrl('');
+                                                            if (videoInputRef.current) videoInputRef.current.value = '';
+                                                        }
+                                                    };
+                                                    video.src = url;
+                                                }
+                                            }}
+                                            className="w-full p-3 bg-black/50 border-2 border-stone-600 rounded-xl text-white file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-purple-500 file:text-white hover:file:bg-purple-600 file:cursor-pointer"
+                                        />
+                                        <p className="text-stone-400 text-sm mt-2">
+                                            ⚠️ Max duration: 10 seconds | Max size: 50MB | Formats: MP4, MOV, AVI, WEBM
+                                        </p>
+                                    </div>
+
+                                    {/* Video Preview */}
+                                    {videoPreviewUrl && videoFile && videoDuration <= 10.5 && (
+                                        <div className="bg-black/30 rounded-xl p-4">
+                                            <p className="text-white font-bold mb-3 flex items-center gap-2">
+                                                <span className="text-blue-400">👁️</span> Preview
+                                            </p>
+                                            <video 
+                                                src={videoPreviewUrl}
+                                                controls
+                                                className="w-full max-w-md mx-auto rounded-lg mb-3"
+                                                style={{ aspectRatio: '9/16', maxHeight: '400px' }}
+                                            />
+                                            <div className="text-stone-300 text-sm space-y-1">
+                                                <p>📁 File: {videoFile.name}</p>
+                                                <p>📊 Size: {(videoFile.size / (1024 * 1024)).toFixed(2)} MB</p>
+                                                <p>⏱️ Duration: {videoDuration.toFixed(1)}s {videoDuration <= 10 ? '✓' : '❌'}</p>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Upload Button */}
+                                    <button
+                                        onClick={async () => {
+                                            if (!videoFile) {
+                                                alert('Please select a video file');
+                                                return;
+                                            }
+
+                                            if (videoDuration > 10.5) {
+                                                alert('Video must be 10 seconds or less');
+                                                return;
+                                            }
+
+                                            setIsUploadingVideo(true);
+                                            
+                                            try {
+                                                // Simulate upload process (in production, upload to Bunny CDN or your storage)
+                                                await new Promise(resolve => setTimeout(resolve, 2000));
+                                                
+                                                // For now, create a local URL (in production, this would be the CDN URL)
+                                                const videoUrl = videoPreviewUrl;
+                                                
+                                                updateVendorDetails(vendor.id, {
+                                                    promotionalVideoUrl: videoUrl
+                                                });
+                                                
+                                                alert('✅ Video uploaded successfully! Your promotional video is now live in the TikTok feed.');
+                                                
+                                                // Reset form
+                                                setVideoFile(null);
+                                                setVideoPreviewUrl('');
+                                                setVideoDuration(0);
+                                                if (videoInputRef.current) videoInputRef.current.value = '';
+                                            } catch (error) {
+                                                alert('❌ Upload failed. Please try again.');
+                                            } finally {
+                                                setIsUploadingVideo(false);
+                                            }
+                                        }}
+                                        disabled={!videoFile || videoDuration > 10.5 || isUploadingVideo}
+                                        className="w-full p-4 bg-gradient-to-r from-purple-500 to-pink-500 text-white font-bold text-xl rounded-xl hover:from-purple-600 hover:to-pink-600 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
+                                    >
+                                        {isUploadingVideo ? (
+                                            <>
+                                                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
+                                                Uploading...
+                                            </>
+                                        ) : (
+                                            <>
+                                                📹 Upload Promotional Video
+                                            </>
+                                        )}
+                                    </button>
+
+                                    {/* Alternative: URL Input */}
+                                    <div className="mt-6 pt-6 border-t-2 border-stone-700">
+                                        <p className="text-stone-400 text-sm mb-3">Or enter a video URL directly:</p>
+                                        <div className="flex gap-3">
+                                            <input
+                                                type="text"
+                                                value={uploadedContent}
+                                                onChange={(e) => setUploadedContent(e.target.value)}
+                                                placeholder="https://your-cdn.com/video.mp4"
+                                                className="flex-1 p-3 bg-black/50 border-2 border-stone-600 rounded-xl text-white placeholder-stone-500"
+                                            />
+                                            <button
+                                                onClick={() => {
+                                                    if (!uploadedContent) {
+                                                        alert('Please enter a video URL');
+                                                        return;
+                                                    }
+                                                    updateVendorDetails(vendor.id, {
+                                                        promotionalVideoUrl: uploadedContent
+                                                    });
+                                                    setUploadedContent('');
+                                                    alert('✅ Video URL saved successfully!');
+                                                }}
+                                                className="px-6 py-3 bg-orange-500 text-white font-bold rounded-xl hover:bg-orange-600 transition-all"
+                                            >
+                                                Save URL
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Upgrade Notice for Non-Gold Members */}
+                        {vendor.membershipTier !== MembershipTier.GOLD && (
+                            <div className="mt-8 bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border-2 border-yellow-500/30 rounded-2xl p-6 text-center">
+                                <div className="text-5xl mb-4">🔒</div>
+                                <h3 className="text-2xl font-bold text-white mb-2">Video Upload is a Gold Feature</h3>
+                                <p className="text-stone-300 text-lg mb-4">
+                                    Upgrade to Gold membership to upload promotional videos and appear in the TikTok-style video feed!
+                                </p>
+                                <button
+                                    onClick={() => {
+                                        setSelectedPackage(MembershipTier.GOLD);
+                                        handlePurchaseMembership();
+                                    }}
+                                    className="px-8 py-4 bg-gradient-to-r from-yellow-500 to-orange-500 text-white font-bold text-xl rounded-xl hover:from-yellow-600 hover:to-orange-600 transition-all shadow-lg"
+                                >
+                                    🥇 Upgrade to Gold
+                                </button>
+                            </div>
+                        )}
                     </div>
                 )}
             </div>

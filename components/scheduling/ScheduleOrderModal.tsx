@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { ScheduledOrder, ScheduledOrderStatus, CartItem, PaymentMethod, PaymentProvider } from '../../types';
-import { ClockIcon, CalendarIcon, CloseIcon, CheckCircleIcon, XMarkIcon, BikeIcon, CreditCardIcon, AlertIcon } from '../common/Icon';
+import { ClockIcon, CloseIcon, CheckCircleIcon, BikeIcon } from '../common/Icon';
 import Modal from '../common/Modal';
 
 interface ScheduleOrderModalProps {
@@ -86,7 +86,7 @@ export const ScheduleOrderModal: React.FC<ScheduleOrderModalProps> = ({
         {/* Info Banner */}
         <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
           <div className="flex items-start gap-3">
-            <AlertIcon className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+            <span className="text-xl flex-shrink-0 mt-0.5">ℹ️</span>
             <div className="text-sm text-blue-900">
               <p className="font-semibold mb-1">How Pre-Order Works:</p>
               <ol className="list-decimal list-inside space-y-1 text-blue-800">
@@ -128,7 +128,7 @@ export const ScheduleOrderModal: React.FC<ScheduleOrderModalProps> = ({
         {/* Date Selection */}
         <div>
           <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
-            <CalendarIcon className="h-4 w-4" />
+            <span className="text-base">📅</span>
             Select Date
           </label>
           <div className="grid grid-cols-2 gap-2">
@@ -380,7 +380,7 @@ export const ScheduledOrderStatusCard: React.FC<ScheduledOrderStatusCardProps> =
                 onClick={() => setShowRejectModal(true)}
                 className="flex-1 py-2 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 transition"
               >
-                <XMarkIcon className="h-4 w-4 inline mr-1" />
+                <span className="inline mr-1">❌</span>
                 Reject
               </button>
             </div>
@@ -391,7 +391,7 @@ export const ScheduledOrderStatusCard: React.FC<ScheduledOrderStatusCardProps> =
               onClick={onPay}
               className="w-full py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg font-bold hover:from-green-700 hover:to-emerald-700 transition shadow-lg"
             >
-              <CreditCardIcon className="h-5 w-5 inline mr-2" />
+              <span className="inline mr-2 text-lg">💳</span>
               Pay Now
             </button>
           )}

@@ -51,7 +51,7 @@ export const MOCK_ORDERS: FoodOrder[] = [
     subtotal: 60000,
     deliveryFee: 12000,
     total: 72000,
-    paymentMethod: 'cash',
+    paymentMethod: 'Cash on Delivery' as any,
     status: OrderStatus.PENDING,
     statusHistory: [
       {
@@ -94,7 +94,7 @@ export const MOCK_ORDERS: FoodOrder[] = [
     subtotal: 22000,
     deliveryFee: 12000,
     total: 34000,
-    paymentMethod: 'transfer',
+    paymentMethod: 'Bank Transfer' as any,
     status: OrderStatus.PREPARING,
     statusHistory: [
       {
@@ -147,7 +147,7 @@ export const MOCK_ORDERS: FoodOrder[] = [
     subtotal: 84000,
     deliveryFee: 12000,
     total: 96000,
-    paymentMethod: 'cash',
+    paymentMethod: 'Cash on Delivery' as any,
     status: OrderStatus.READY,
     statusHistory: [
       {
@@ -223,7 +223,7 @@ export const MOCK_ORDERS: FoodOrder[] = [
     subtotal: 55000,
     deliveryFee: 12000,
     total: 67000,
-    paymentMethod: 'cash',
+    paymentMethod: 'Cash on Delivery' as any,
     status: OrderStatus.ON_THE_WAY,
     statusHistory: [
       {
@@ -262,6 +262,7 @@ export const MOCK_ORDERS: FoodOrder[] = [
       driverId: 'driver_001',
       driverName: 'Pak Ketut',
       driverPhone: '08111222333',
+      driverWhatsApp: '08111222333',
       vehicleType: 'Bike'
     },
     estimatedDeliveryTime: new Date(Date.now() + 5 * 60 * 1000).toISOString()

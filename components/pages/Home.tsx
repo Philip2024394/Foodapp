@@ -110,6 +110,15 @@ const Home: React.FC = () => {
                   />
               ))}
           </div>
+
+          {/* Promo Videos Button */}
+          <button
+            onClick={() => navigateTo(Page.PROMO_VIDEOS)}
+            className="mt-6 px-8 py-3 bg-gradient-to-r from-pink-500 to-purple-500 text-white font-bold rounded-full shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 flex items-center gap-2"
+          >
+            <span className="text-2xl">🎬</span>
+            <span>Watch Restaurant Promos</span>
+          </button>
       </div>
     </div>
   );

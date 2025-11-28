@@ -33,6 +33,65 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
     return vendors.filter(v => vendorIds.has(v.id));
   }, [cart, vendors]);
 
+  // Calculate scratch card discounts
+  const scratchCardDiscounts = useMemo(() => {
+    const wonDiscounts = JSON.parse(localStorage.getItem('scratchCardWins') || '{}');
+    const discountsByVendor: Record<string, { percentage: number; amount: number }> = {};
+    
+    vendorsInCart.forEach(vendor => {
+      const discount = wonDiscounts[vendor.id];
+      if (discount && !discount.used) {
+        // Calculate discount for this vendor's items only
+        const vendorTotal = cart
+          .filter(ci => ci.item.vendorId === vendor.id)
+          .reduce((sum, ci) => sum + ci.item.price * ci.quantity, 0);
+        
+        const discountAmount = Math.round(vendorTotal * (discount.percentage / 100));
+        discountsByVendor[vendor.id] = {
+          percentage: discount.percentage,
+          amount: discountAmount
+        };
+      }
+    });
+    
+    return discountsByVendor;
+  }, [cart, vendorsInCart]);
+
+  const totalScratchCardDiscount = useMemo(() => {
+    return Object.values(scratchCardDiscounts).reduce((sum, d) => sum + d.amount, 0);
+  }, [scratchCardDiscounts]);
+
+  // Apply like button discounts (5% one-time)
+  const likeDiscounts = useMemo(() => {
+    const likeDiscountData = JSON.parse(localStorage.getItem('likeDiscounts') || '{}');
+    const discountsByVendor: Record<string, { percentage: number; amount: number }> = {};
+    
+    vendorsInCart.forEach(vendor => {
+      const discount = likeDiscountData[vendor.id];
+      if (discount && !discount.used) {
+        // Calculate discount for this vendor's items only
+        const vendorTotal = cart
+          .filter(ci => ci.item.vendorId === vendor.id)
+          .reduce((sum, ci) => sum + ci.item.price * ci.quantity, 0);
+        
+        const discountAmount = Math.round(vendorTotal * (discount.percentage / 100));
+        discountsByVendor[vendor.id] = {
+          percentage: discount.percentage,
+          amount: discountAmount
+        };
+      }
+    });
+    
+    return discountsByVendor;
+  }, [cart, vendorsInCart]);
+
+  const totalLikeDiscount = useMemo(() => {
+    return Object.values(likeDiscounts).reduce((sum, d) => sum + d.amount, 0);
+  }, [likeDiscounts]);
+
+  const totalDiscount = totalScratchCardDiscount + totalLikeDiscount;
+  const subtotalAfterDiscounts = finalSubtotal - totalDiscount;
+
   const deliveryFee = useMemo(() => {
     if (subtotal === 0) return 0;
     const baseDeliveryFee = 12000;
@@ -41,7 +100,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
     return baseDeliveryFee + (extraStops * additionalStopFee);
   }, [subtotal, vendorsInCart]);
 
-  const total = finalSubtotal + deliveryFee;
+  const total = subtotalAfterDiscounts + deliveryFee;
 
   const handleCheckout = () => {
     if (!whatsappNumber) {
@@ -52,6 +111,28 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
     
     if (deliveryAddress && deliveryAddress !== location) {
         confirmLocation(deliveryAddress);
+    }
+    
+    // Mark scratch card discounts as used
+    if (Object.keys(scratchCardDiscounts).length > 0) {
+      const wonDiscounts = JSON.parse(localStorage.getItem('scratchCardWins') || '{}');
+      Object.keys(scratchCardDiscounts).forEach(vendorId => {
+        if (wonDiscounts[vendorId]) {
+          wonDiscounts[vendorId].used = true;
+        }
+      });
+      localStorage.setItem('scratchCardWins', JSON.stringify(wonDiscounts));
+    }
+
+    // Mark like discounts as used
+    if (Object.keys(likeDiscounts).length > 0) {
+      const likeDiscountData = JSON.parse(localStorage.getItem('likeDiscounts') || '{}');
+      Object.keys(likeDiscounts).forEach(vendorId => {
+        if (likeDiscountData[vendorId]) {
+          likeDiscountData[vendorId].used = true;
+        }
+      });
+      localStorage.setItem('likeDiscounts', JSON.stringify(likeDiscountData));
     }
     
     // Group items by vendor and send WhatsApp notifications
@@ -71,12 +152,24 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
         const itemsList = items.map(ci => `${ci.quantity}x ${ci.item.name}`).join(', ');
         const vendorTotal = items.reduce((sum, ci) => sum + ci.item.price * ci.quantity, 0);
         
+        // Calculate discounts for this vendor
+        let discountText = '';
+        if (scratchCardDiscounts[vendorId]) {
+          discountText += `\n🎰 Scratch Card Discount: -${scratchCardDiscounts[vendorId].percentage}% (${formatIndonesianCurrency(scratchCardDiscounts[vendorId].amount)})`;
+        }
+        if (likeDiscounts[vendorId]) {
+          discountText += `\n❤️ Like Discount: -${likeDiscounts[vendorId].percentage}% (${formatIndonesianCurrency(likeDiscounts[vendorId].amount)})`;
+        }
+        
+        const totalDiscount = (scratchCardDiscounts[vendorId]?.amount || 0) + (likeDiscounts[vendorId]?.amount || 0);
+        const finalVendorTotal = vendorTotal - totalDiscount;
+        
         const message = generateRestaurantOrderMessage(
           whatsappNumber || 'Customer',
           itemsList,
-          formatIndonesianCurrency(vendorTotal),
+          formatIndonesianCurrency(finalVendorTotal),
           deliveryAddress || location || 'Address not provided'
-        );
+        ) + discountText;
         
         setTimeout(() => {
           openWhatsAppChat(vendor.whatsapp!, message);
@@ -130,14 +223,51 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                 <span>Subtotal</span>
                 <span>{formatIndonesianCurrency(finalSubtotal)}</span>
               </div>
+              
+              {/* Show Scratch Card Discounts */}
+              {Object.entries(scratchCardDiscounts).map(([vendorId, discount]) => {
+                const vendor = vendors.find(v => v.id === vendorId);
+                return (
+                  <div key={`scratch-${vendorId}`} className="flex justify-between text-green-400 text-sm">
+                    <span className="flex items-center gap-1">
+                      <span>🎰</span>
+                      <span>Scratch Card ({vendor?.name})</span>
+                    </span>
+                    <span>-{formatIndonesianCurrency(discount.amount)}</span>
+                  </div>
+                );
+              })}
+              
+              {/* Show Like Discounts */}
+              {Object.entries(likeDiscounts).map(([vendorId, discount]) => {
+                const vendor = vendors.find(v => v.id === vendorId);
+                return (
+                  <div key={`like-${vendorId}`} className="flex justify-between text-pink-400 text-sm">
+                    <span className="flex items-center gap-1">
+                      <span>❤️</span>
+                      <span>Like Reward ({vendor?.name})</span>
+                    </span>
+                    <span>-{formatIndonesianCurrency(discount.amount)}</span>
+                  </div>
+                );
+              })}
+              
               <div className="flex justify-between text-stone-300 text-sm">
                 <span>Delivery Fee</span>
                 <span>{formatIndonesianCurrency(deliveryFee)}</span>
               </div>
-              <div className="flex justify-between text-white font-bold text-lg">
+              <div className="flex justify-between text-white font-bold text-lg pt-2 border-t border-white/10">
                 <span>Total</span>
                 <span>{formatIndonesianCurrency(total)}</span>
               </div>
+              
+              {totalDiscount > 0 && (
+                <div className="bg-green-500/20 border border-green-500/30 rounded-lg p-3 mt-2">
+                  <p className="text-green-400 text-xs font-semibold text-center">
+                    🎉 You saved {formatIndonesianCurrency(totalDiscount)} with discounts!
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* Payment Options */}

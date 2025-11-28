@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { PaymentMethod, PaymentProvider, Vendor } from '../../types';
-import { XMarkIcon, CheckCircleIcon, CashIcon, BanknotesIcon } from '@heroicons/react/24/outline';
+import { XMarkIcon, CheckCircleIcon, BanknotesIcon } from '@heroicons/react/24/outline';
 import { formatIndonesianCurrency } from '../../utils/formatters';
 
 interface PaymentSelectionProps {

@@ -25,6 +25,7 @@ const VendorPage = lazy(() => import('./components/pages/VendorPage'));
 const Profile = lazy(() => import('./components/pages/Profile'));
 const ReviewsPage = lazy(() => import('./components/pages/ReviewsPage'));
 const RestaurantDashboard = lazy(() => import('./components/pages/RestaurantDashboard'));
+const PromoVideos = lazy(() => import('./components/pages/PromoVideos'));
 
 
 const App: React.FC = () => {
@@ -53,9 +54,9 @@ const App: React.FC = () => {
 
   useEffect(() => {
     // When the app is initialized and we are still on the landing page,
-    // it means the user just finished the setup, so navigate them to home.
+    // it means the user just finished the setup, so navigate them to street food.
     if (isInitialized && currentPage === Page.LANDING) {
-      navigateTo(Page.HOME);
+      navigateTo(Page.FOOD);
     }
   }, [isInitialized, currentPage, navigateTo]);
 
@@ -101,14 +102,16 @@ const App: React.FC = () => {
         return <ReviewsPage />;
       case Page.RESTAURANT_DASHBOARD:
         return <RestaurantDashboard />;
+      case Page.PROMO_VIDEOS:
+        return <PromoVideos />;
       default:
         return <Home />;
     }
   };
 
-  const noPaddingPages = [Page.HOME, Page.CHAT, Page.VENDOR, Page.FOOD];
-  const pagesWithoutFooter = [Page.CHAT, Page.FOOD];
-  const pagesWithoutHeader = [Page.FOOD];
+  const noPaddingPages = [Page.HOME, Page.CHAT, Page.VENDOR, Page.FOOD, Page.PROMO_VIDEOS];
+  const pagesWithoutFooter = [Page.CHAT, Page.FOOD, Page.PROMO_VIDEOS];
+  const pagesWithoutHeader = [Page.FOOD, Page.PROMO_VIDEOS];
   const pagesWithAppBackground = [Page.HOME];
 
   const showFooter = !pagesWithoutFooter.includes(currentPage);

@@ -1,5 +1,5 @@
 import React, { useState, useMemo, FC, useEffect } from 'react';
-import { MenuItem, ShopItem, Vehicle, Vendor, Page, VehicleType, Review, VehicleBooking, Voucher, CateringService, CateringEventType, AlcoholMenu, AlcoholDrink } from '../../types';
+import { MenuItem, ShopItem, Vehicle, Vendor, Page, VehicleType, Review, VehicleBooking, Voucher, CateringService, CateringEventType, AlcoholMenu, AlcoholDrink, MembershipTier } from '../../types';
 import ImagePreviewModal from '../common/ImagePreviewModal';
 import QuantitySelector from '../common/QuantitySelector';
 import { WebsiteIcon, InstagramIcon, FacebookIcon, TikTokIcon, LinkedInIcon, ShieldCheckIcon, CarIcon, BikeIcon, ClockIcon, ChiliIcon, StarIcon, GlobeIcon, LanguageIcon, StoreFrontIcon, ArrowDownIcon, LocationPinIcon, BriefcaseIcon, PlusIcon, PhotographIcon, InformationCircleIcon, GiftIcon, CheckIcon } from '../common/Icon';
@@ -10,6 +10,8 @@ import { useCartContext } from '../../hooks/useCartContext';
 import { useNavigationContext } from '../../hooks/useNavigationContext';
 import WhatsAppChatButton from '../common/WhatsAppChatButton';
 import Modal from '../common/Modal';
+import RestaurantPromoVideo from '../common/RestaurantPromoVideo';
+import ScratchCardGame from '../common/ScratchCardGame';
 
 // --- COMPONENTS FOR MODERN FOOD MENU ---
 
@@ -297,7 +299,7 @@ const FlipProfileCard: FC<FlipProfileCardProps> = ({ vendor, galleryImages, onIm
                             className="absolute top-6 right-6 bg-black/60 backdrop-blur-md text-white px-3 py-1.5 rounded-full flex items-center gap-2 border border-white/20 hover:bg-orange-600 hover:border-orange-500 transition-all text-sm font-semibold shadow-lg z-20"
                         >
                             <GiftIcon className="h-4 w-4" />
-                            <span>Vouchers</span>
+                            <span>{vendor.scratchCardSettings?.enabled && vendor.membershipTier === 'gold' ? 'Game' : 'Vouchers'}</span>
                         </button>
                     )}
 
@@ -390,49 +392,85 @@ const FlipProfileCard: FC<FlipProfileCardProps> = ({ vendor, galleryImages, onIm
                 </div>
 
                 {/* Back Face - VOUCHERS GRID */}
-                <div className={`flip-card-back bg-stone-900 flex flex-col p-4 ${isFlipped ? 'pointer-events-auto' : 'pointer-events-none'}`}>
-                    <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-                        <GiftIcon className="h-6 w-6 text-orange-500" />
-                        Available Vouchers
-                    </h3>
+                <div className={`flip-card-back bg-stone-900 flex flex-col ${isFlipped ? 'pointer-events-auto' : 'pointer-events-none'}`}>
+                    {/* Show Scratch Card Game if enabled AND Gold member, otherwise show Vouchers */}
+                    {vendor.scratchCardSettings?.enabled && vendor.membershipTier === 'gold' ? (
+                        <div className="flex-1 min-h-0 relative">
+                            <ScratchCardGame 
+                                vendor={vendor} 
+                                onWin={(percentage) => {
+                                    // Store the won discount in localStorage
+                                    const wonDiscounts = JSON.parse(localStorage.getItem('scratchCardWins') || '{}');
+                                    wonDiscounts[vendor.id] = {
+                                        percentage,
+                                        timestamp: Date.now(),
+                                        used: false
+                                    };
+                                    localStorage.setItem('scratchCardWins', JSON.stringify(wonDiscounts));
+                                }}
+                            />
+                            {/* Flip Back Button - Inside game container */}
+                            <button 
+                                type="button"
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    setIsFlipped(false);
+                                }}
+                                className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black/80 backdrop-blur-md text-white px-4 py-2 rounded-full flex items-center gap-2 border border-white/20 hover:bg-orange-600 hover:border-orange-500 transition-all text-sm font-semibold shadow-lg z-50 cursor-pointer"
+                            >
+                                <InformationCircleIcon className="h-4 w-4" />
+                                <span>Back to Profile</span>
+                            </button>
+                        </div>
+                    ) : (
+                        <>
+                            <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
+                                <GiftIcon className="h-6 w-6 text-orange-500" />
+                                Available Vouchers
+                            </h3>
+                            
+                            <div className="grid grid-cols-2 gap-3 overflow-y-auto max-h-[24rem] pr-1">
+                                 {vendor.vouchers && vendor.vouchers.length > 0 ? (
+                                     vendor.vouchers.map((voucher) => (
+                                        <div 
+                                            key={voucher.id} 
+                                            onClick={(e) => { e.stopPropagation(); setSelectedVoucher(voucher); }}
+                                            className="relative aspect-square bg-gradient-to-br from-stone-800 to-stone-900 rounded-xl border border-white/10 p-3 flex flex-col items-center justify-center text-center cursor-pointer hover:border-orange-500 transition-all group hover:shadow-lg hover:shadow-orange-500/20"
+                                        >
+                                            <div className="bg-orange-600/20 p-3 rounded-full mb-2 group-hover:bg-orange-600 group-hover:text-white transition-colors text-orange-500">
+                                                <GiftIcon className="h-8 w-8" />
+                                            </div>
+                                            <h4 className="text-white font-bold text-sm leading-tight">{voucher.title}</h4>
+                                            <p className="text-orange-400 font-bold text-lg mt-1">{formatIndonesianCurrency(voucher.discountAmount)} OFF</p>
+                                            <p className="text-xs text-stone-500 mt-1 line-clamp-2">{voucher.description}</p>
+                                        </div>
+                                    ))
+                                 ) : (
+                                     <div className="col-span-2 flex flex-col items-center justify-center h-64 text-stone-500">
+                                         <GiftIcon className="h-12 w-12 mb-2 opacity-20" />
+                                         <p>No vouchers available at the moment.</p>
+                                     </div>
+                                 )}
+                            </div>
+                        </>
+                    )}
                     
-                    <div className="grid grid-cols-2 gap-3 overflow-y-auto max-h-[24rem] pr-1">
-                         {vendor.vouchers && vendor.vouchers.length > 0 ? (
-                             vendor.vouchers.map((voucher) => (
-                                <div 
-                                    key={voucher.id} 
-                                    onClick={(e) => { e.stopPropagation(); setSelectedVoucher(voucher); }}
-                                    className="relative aspect-square bg-gradient-to-br from-stone-800 to-stone-900 rounded-xl border border-white/10 p-3 flex flex-col items-center justify-center text-center cursor-pointer hover:border-orange-500 transition-all group hover:shadow-lg hover:shadow-orange-500/20"
-                                >
-                                    <div className="bg-orange-600/20 p-3 rounded-full mb-2 group-hover:bg-orange-600 group-hover:text-white transition-colors text-orange-500">
-                                        <GiftIcon className="h-8 w-8" />
-                                    </div>
-                                    <h4 className="text-white font-bold text-sm leading-tight">{voucher.title}</h4>
-                                    <p className="text-orange-400 font-bold text-lg mt-1">{formatIndonesianCurrency(voucher.discountAmount)} OFF</p>
-                                    <p className="text-xs text-stone-500 mt-1 line-clamp-2">{voucher.description}</p>
-                                </div>
-                            ))
-                         ) : (
-                             <div className="col-span-2 flex flex-col items-center justify-center h-64 text-stone-500">
-                                 <GiftIcon className="h-12 w-12 mb-2 opacity-20" />
-                                 <p>No vouchers available at the moment.</p>
-                             </div>
-                         )}
-                    </div>
-                    
-                    {/* Flip Back Button */}
-                    <button 
-                        type="button"
-                        onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            setIsFlipped(false);
-                        }}
-                        className="absolute top-4 right-4 bg-black/80 backdrop-blur-md text-white px-4 py-2 rounded-full flex items-center gap-2 border border-white/20 hover:bg-orange-600 hover:border-orange-500 transition-all text-sm font-semibold shadow-lg z-50 cursor-pointer"
-                    >
-                        <InformationCircleIcon className="h-4 w-4" />
-                        <span>Profile</span>
-                    </button>
+                    {/* Flip Back Button - Only for vouchers view */}
+                    {!(vendor.scratchCardSettings?.enabled && vendor.membershipTier === 'gold') && (
+                        <button 
+                            type="button"
+                            onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                setIsFlipped(false);
+                            }}
+                            className="absolute top-4 right-4 bg-black/80 backdrop-blur-md text-white px-4 py-2 rounded-full flex items-center gap-2 border border-white/20 hover:bg-orange-600 hover:border-orange-500 transition-all text-sm font-semibold shadow-lg z-50 cursor-pointer"
+                        >
+                            <InformationCircleIcon className="h-4 w-4" />
+                            <span>Profile</span>
+                        </button>
+                    )}
                 </div>
             </div>
         </div>
@@ -847,6 +885,7 @@ const VendorPage: React.FC = () => {
     // Special Services State
     const [showCatering, setShowCatering] = useState(false);
     const [showAlcohol, setShowAlcohol] = useState(false);
+    const [showPromoVideo, setShowPromoVideo] = useState(false);
 
     useEffect(() => {
         if (vendorDetails) {

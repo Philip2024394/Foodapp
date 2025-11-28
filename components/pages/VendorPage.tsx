@@ -11,7 +11,7 @@ import { useNavigationContext } from '../../hooks/useNavigationContext';
 import WhatsAppChatButton from '../common/WhatsAppChatButton';
 import Modal from '../common/Modal';
 import RestaurantPromoVideo from '../common/RestaurantPromoVideo';
-import ScratchCardGame from '../common/ScratchCardGame';
+import GameHub from '../common/GameHub';
 
 // --- COMPONENTS FOR MODERN FOOD MENU ---
 
@@ -260,7 +260,7 @@ const FlipProfileCard: FC<FlipProfileCardProps> = ({ vendor, galleryImages, onIm
                          <img 
                             src={vendor.logo || vendor.image} 
                             alt={vendor.name} 
-                            className="w-40 h-40 rounded-full object-cover border-4 border-orange-500 bg-stone-800 shadow-2xl"
+                            className="w-32 h-32 rounded-full object-cover border-4 border-orange-500 bg-stone-800 shadow-2xl"
                         />
                     </div>
 
@@ -392,11 +392,11 @@ const FlipProfileCard: FC<FlipProfileCardProps> = ({ vendor, galleryImages, onIm
                 </div>
 
                 {/* Back Face - VOUCHERS GRID */}
-                <div className={`flip-card-back bg-stone-900 flex flex-col ${isFlipped ? 'pointer-events-auto' : 'pointer-events-none'}`}>
-                    {/* Show Scratch Card Game if enabled AND Gold member, otherwise show Vouchers */}
+                <div className={`flip-card-back bg-stone-900 flex flex-col p-6 ${isFlipped ? 'pointer-events-auto' : 'pointer-events-none'}`}>
+                    {/* Show Game Hub if enabled AND Gold member, otherwise show Vouchers */}
                     {vendor.scratchCardSettings?.enabled && vendor.membershipTier === 'gold' ? (
-                        <div className="flex-1 min-h-0 relative">
-                            <ScratchCardGame 
+                        <div className="flex-1 min-h-0 relative -m-6">
+                            <GameHub 
                                 vendor={vendor} 
                                 onWin={(percentage) => {
                                     // Store the won discount in localStorage
@@ -408,6 +408,18 @@ const FlipProfileCard: FC<FlipProfileCardProps> = ({ vendor, galleryImages, onIm
                                     };
                                     localStorage.setItem('scratchCardWins', JSON.stringify(wonDiscounts));
                                 }}
+                                onNavigateToMenu={() => {
+                                    // Close flip card and scroll to menu
+                                    setIsFlipped(false);
+                                    setTimeout(() => {
+                                        setCurrentTab('menu');
+                                        // Scroll to menu section smoothly
+                                        const menuSection = document.querySelector('[data-section="menu"]');
+                                        if (menuSection) {
+                                            menuSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                                        }
+                                    }, 500); // Wait for flip animation
+                                }}
                             />
                             {/* Flip Back Button - Inside game container */}
                             <button 
@@ -417,10 +429,9 @@ const FlipProfileCard: FC<FlipProfileCardProps> = ({ vendor, galleryImages, onIm
                                     e.stopPropagation();
                                     setIsFlipped(false);
                                 }}
-                                className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black/80 backdrop-blur-md text-white px-4 py-2 rounded-full flex items-center gap-2 border border-white/20 hover:bg-orange-600 hover:border-orange-500 transition-all text-sm font-semibold shadow-lg z-50 cursor-pointer"
+                                className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-yellow-400 to-amber-500 text-black px-6 py-2 rounded-full flex items-center gap-2 border-2 border-yellow-300 hover:from-yellow-300 hover:to-amber-400 transition-all text-sm font-bold shadow-lg z-50 cursor-pointer"
                             >
-                                <InformationCircleIcon className="h-4 w-4" />
-                                <span>Back to Profile</span>
+                                <span>✕ Close</span>
                             </button>
                         </div>
                     ) : (
@@ -1210,7 +1221,7 @@ const VendorPage: React.FC = () => {
         const popularItems = items.filter(i => i.price > 25000 || (i as any).isPopular).slice(0, 5);
 
         return (
-            <div className="pb-12">
+            <div className="pb-12" data-section="menu">
                 {/* Sticky Category Nav */}
                 <div className="sticky top-0 z-30 bg-black/80 backdrop-blur-lg border-b border-white/10 -mx-4 px-4 py-3 flex gap-2 overflow-x-auto no-scrollbar shadow-2xl">
                     <CategoryPill label="Popular" isActive={activeCategory === 'Popular'} onClick={() => scrollToCategory('Popular')} />

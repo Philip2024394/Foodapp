@@ -49,10 +49,10 @@ const AuthForm: React.FC = () => {
     };
 
     return (
-        <div className="flex items-center justify-center min-h-[calc(100vh-200px)]">
-            <div className="w-full max-w-md p-8 space-y-6 bg-white/5 backdrop-blur-lg border border-white/10 rounded-2xl shadow-xl">
+        <div className="flex items-center justify-center min-h-[calc(100vh-200px)] px-4">
+            <div className="w-full max-w-md p-4 md:p-8 space-y-6 bg-white/5 backdrop-blur-lg border border-white/10 rounded-2xl shadow-xl">
                 <div className="text-center">
-                    <h1 className="text-3xl font-bold text-white">
+                    <h1 className="text-2xl md:text-3xl font-bold text-white">
                         {mode === 'signIn' ? 'Welcome Back' : 'Create Account'}
                     </h1>
                     <p className="text-stone-400 mt-2">
@@ -157,10 +157,10 @@ const Profile: React.FC = () => {
         >
             <div className="max-w-7xl mx-auto p-4 md:p-8">
                 <div className="space-y-8 pb-16 animate-fade-in-scale">
-                    <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-2xl shadow-xl p-8 flex flex-col md:flex-row items-center gap-8">
-                        <img src={'https://picsum.photos/seed/userprofile_avatar/200/200'} alt={user.email} className="w-32 h-32 rounded-full object-cover border-4 border-orange-500/50" />
+                    <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-2xl shadow-xl p-4 md:p-8 flex flex-col md:flex-row items-center gap-4 md:gap-8">
+                        <img src={'https://picsum.photos/seed/userprofile_avatar/200/200'} alt={user.email} className="w-24 h-24 md:w-32 md:h-32 rounded-full object-cover border-4 border-orange-500/50" />
                         <div className="text-center md:text-left flex-grow">
-                            <h1 className="text-3xl font-bold text-stone-100 truncate">{user.email}</h1>
+                            <h1 className="text-2xl md:text-3xl font-bold text-stone-100 truncate">{user.email}</h1>
                             <p className="text-stone-400">Welcome to your dashboard</p>
                             
                             {/* WhatsApp Number Section */}
@@ -228,15 +228,15 @@ const Profile: React.FC = () => {
                     </div>
 
                     {guestRewardStatus === 'active' && (
-                        <div className="discount-glow bg-orange-500/10 backdrop-blur-lg border border-orange-500/30 rounded-xl shadow-md p-4 text-center animate-fade-in-scale">
-                            <h3 className="text-lg font-semibold text-orange-400">🎉 Guest Reward Active!</h3>
+                        <div className="discount-glow bg-orange-500/10 backdrop-blur-lg border border-orange-500/30 rounded-xl shadow-md p-3 md:p-4 text-center animate-fade-in-scale">
+                            <h3 className="text-base md:text-lg font-semibold text-orange-400">🎉 Guest Reward Active!</h3>
                             <p className="text-stone-300 mt-1">You have 5% OFF all rides, food, and parcel deliveries.</p>
                         </div>
                     )}
 
                     <div 
                         onClick={() => navigateTo(Page.DRIVER_SIGNUP)}
-                        className="cursor-pointer group bg-gradient-to-r from-orange-500 to-amber-500 rounded-2xl shadow-xl p-6 flex items-center justify-between transition-transform transform hover:scale-105"
+                        className="cursor-pointer group bg-gradient-to-r from-orange-500 to-amber-500 rounded-2xl shadow-xl p-4 md:p-6 flex items-center justify-between transition-transform transform hover:scale-105"
                     >
                         <div className="flex items-center space-x-4">
                             <div className="p-3 bg-white/20 rounded-full">
@@ -251,10 +251,10 @@ const Profile: React.FC = () => {
                     </div>
 
                     <div className="mt-10">
-                        <h2 className="text-2xl font-bold text-stone-100 mb-4">My Favorites</h2>
+                        <h2 className="text-xl md:text-2xl font-bold text-stone-100 mb-4">My Favorites</h2>
                         <div 
                             onClick={() => navigateTo(Page.FAVORITE_DRIVERS)}
-                            className="cursor-pointer group bg-white/5 backdrop-blur-lg border border-white/10 rounded-2xl shadow-xl p-6 flex items-center justify-between transition-all transform hover:scale-105 hover:border-orange-500/50"
+                            className="cursor-pointer group bg-white/5 backdrop-blur-lg border border-white/10 rounded-2xl shadow-xl p-4 md:p-6 flex items-center justify-between transition-all transform hover:scale-105 hover:border-orange-500/50"
                         >
                             <div className="flex items-center space-x-4">
                                 <div className="p-3 bg-black/20 rounded-full">
@@ -270,8 +270,8 @@ const Profile: React.FC = () => {
                     </div>
 
                     <div className="mt-10">
-                        <h2 className="text-2xl font-bold text-stone-100 mb-4">My Share Rewards</h2>
-                        <p className="text-sm text-stone-400 -mt-3 mb-4">Earn 10% dine-in discount codes by sharing restaurants on social media</p>
+                        <h2 className="text-xl md:text-2xl font-bold text-stone-100 mb-4">My Share Rewards</h2>
+                        <p className="text-xs md:text-sm text-stone-400 -mt-3 mb-4">Earn 10% dine-in discount codes by sharing restaurants on social media</p>
                         {shareProofs.length > 0 ? (
                             <div className="space-y-3">
                                 {shareProofs.map(proof => (
@@ -346,8 +346,8 @@ const Profile: React.FC = () => {
                     </div>
 
                     <div className="mt-10">
-                        <h2 className="text-2xl font-bold text-stone-100 mb-4">Recent Bookings</h2>
-                        <p className="text-sm text-stone-400 -mt-3 mb-4">Click to rebook. Hold for 3 seconds to save or unsave for quick access.</p>
+                        <h2 className="text-xl md:text-2xl font-bold text-stone-100 mb-4">Recent Bookings</h2>
+                        <p className="text-xs md:text-sm text-stone-400 -mt-3 mb-4">Click to rebook. Hold for 3 seconds to save or unsave for quick access.</p>
                          {sortedBookings.length > 0 ? (
                             <div className="space-y-4">
                                 {sortedBookings.map(booking => (

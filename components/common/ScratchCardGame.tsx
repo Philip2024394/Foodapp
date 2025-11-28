@@ -16,6 +16,7 @@ const ScratchCardGame: React.FC<ScratchCardGameProps> = ({ vendor, onWin }) => {
     const [timeLeft, setTimeLeft] = useState<number>(0);
     const [wonPercentage, setWonPercentage] = useState<number>(0);
     const [wonFreeItem, setWonFreeItem] = useState<FreeItemType | null>(null);
+    const [showingResult, setShowingResult] = useState<boolean>(false);
 
     // Get game settings from vendor (with defaults)
     const maxDiscount = vendor.scratchCardSettings?.maxDiscount || 20;
@@ -60,9 +61,11 @@ const ScratchCardGame: React.FC<ScratchCardGameProps> = ({ vendor, onWin }) => {
             ...availableFreeItems // Free items
         ];
         const itemCount = availableFreeItems.length;
-        const weights = [25, 15, 10, 5, ...Array(itemCount).fill(45/itemCount)];
+        // Higher probability distribution: more duplicate values for better win chances
+        const weights = [30, 20, 15, 8, ...Array(itemCount).fill(27/itemCount)];
         
-        // Generate 20 boxes
+        // Generate 20 boxes with some guaranteed duplicates for winnable scenarios
+        const duplicateIndexes = [0, 4, 9, 13, 17]; // Positions that get duplicate values
         for (let i = 0; i < 20; i++) {
             const random = Math.random() * 100;
             let cumulative = 0;
@@ -79,7 +82,22 @@ const ScratchCardGame: React.FC<ScratchCardGameProps> = ({ vendor, onWin }) => {
         return values;
     };
 
-    const [boxValues] = useState<number[]>(generateBoxValues());
+    const [boxValues] = useState<RewardValue[]>(() => {
+        // Check if there are saved box values for this vendor
+        const savedValues = localStorage.getItem(`scratchcard_boxes_${vendor.id}`);
+        if (savedValues) {
+            try {
+                return JSON.parse(savedValues);
+            } catch {
+                const newValues = generateBoxValues();
+                localStorage.setItem(`scratchcard_boxes_${vendor.id}`, JSON.stringify(newValues));
+                return newValues;
+            }
+        }
+        const newValues = generateBoxValues();
+        localStorage.setItem(`scratchcard_boxes_${vendor.id}`, JSON.stringify(newValues));
+        return newValues;
+    });
 
     // Check cooldown on mount
     useEffect(() => {
@@ -162,11 +180,18 @@ const ScratchCardGame: React.FC<ScratchCardGameProps> = ({ vendor, onWin }) => {
                     }));
                 }
             } else {
-                // LOSE - Set cooldown
+                // LOSE - Show result for 3 seconds, then start cooldown
                 setGameResult('lost');
-                const cooldownEnd = Date.now() + 60000; // 1 minute
-                setCooldownEnd(cooldownEnd);
-                localStorage.setItem(`scratchcard_cooldown_${vendor.id}`, cooldownEnd.toString());
+                setShowingResult(true);
+                
+                // After 3 seconds, switch to cooldown timer
+                setTimeout(() => {
+                    setShowingResult(false);
+                    setGameResult('cooldown');
+                    const cooldownEnd = Date.now() + 30000; // 30 seconds
+                    setCooldownEnd(cooldownEnd);
+                    localStorage.setItem(`scratchcard_cooldown_${vendor.id}`, cooldownEnd.toString());
+                }, 3000);
             }
         }
     };
@@ -283,7 +308,7 @@ const ScratchCardGame: React.FC<ScratchCardGameProps> = ({ vendor, onWin }) => {
             </div>
 
             {/* Content */}
-            <div className="relative z-10 flex flex-col h-full p-3 pb-16">
+            <div className="relative z-10 flex flex-col h-full p-3 pb-20">
                 {/* Header */}
                 <div className="text-center mb-2">
                     <h2 className="text-xl font-bold text-yellow-300 drop-shadow-lg mb-1">
@@ -299,7 +324,13 @@ const ScratchCardGame: React.FC<ScratchCardGameProps> = ({ vendor, onWin }) => {
 
                 {/* Game Board */}
                 <div className="flex-1 flex items-start justify-center min-h-0 pt-1">
-                    {gameResult === 'cooldown' ? (
+                    {showingResult ? (
+                        <div className="text-center animate-fade-in-scale">
+                            <div className="text-5xl mb-3">😔</div>
+                            <p className="text-white text-xl font-bold mb-2">No Match!</p>
+                            <p className="text-yellow-300 text-sm">Preparing next try...</p>
+                        </div>
+                    ) : gameResult === 'cooldown' ? (
                         <div className="text-center">
                             <div className="text-5xl mb-3">⏱️</div>
                             <p className="text-white text-lg font-bold mb-2">Try Again In</p>
@@ -377,18 +408,18 @@ const ScratchCardGame: React.FC<ScratchCardGameProps> = ({ vendor, onWin }) => {
                                                 </div>
                                             ) : (
                                                 <div 
-                                                    className="absolute inset-0 flex flex-col items-center justify-center p-1"
+                                                    className="absolute inset-0 flex flex-col items-center justify-center"
                                                 >
                                                     {typeof value === 'number' ? (
-                                                        <>
+                                                        <div className="p-1">
                                                             <div className="text-lg sm:text-xl font-bold text-purple-900">{value}%</div>
                                                             <div className="text-[7px] sm:text-[9px] text-purple-700 font-bold">OFF</div>
-                                                        </>
+                                                        </div>
                                                     ) : (
                                                         <img 
                                                             src={freeItemImages[value]} 
                                                             alt={value}
-                                                            className="w-full h-full object-contain p-1"
+                                                            className="w-full h-full object-cover rounded-md"
                                                         />
                                                     )}
                                                 </div>
@@ -425,7 +456,7 @@ const ScratchCardGame: React.FC<ScratchCardGameProps> = ({ vendor, onWin }) => {
                         </p>
                         {selectedBoxes.length === 3 && gameResult === 'lost' && (
                             <p className="text-red-300 font-bold mt-1 text-[10px] animate-fade-in-scale">
-                                No match! Try again in 1 minute
+                                Try Again In 30 Seconds
                             </p>
                         )}
                     </div>

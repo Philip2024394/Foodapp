@@ -100,60 +100,60 @@ const WinCelebration: React.FC<WinCelebrationProps> = ({ prize, onComplete }) =>
             {/* Main content */}
             <div className="relative z-10 text-center animate-scale-bounce px-4">
                 {/* Trophy/Star animation */}
-                <div className="text-6xl md:text-9xl mb-4 md:mb-6 animate-trophy-bounce drop-shadow-2xl">
+                <div className="text-4xl md:text-6xl mb-2 md:mb-3 animate-trophy-bounce drop-shadow-2xl">
                     🏆
                 </div>
 
                 {/* "WOW!" text */}
-                <div className="text-5xl md:text-7xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 mb-3 md:mb-4 animate-pulse drop-shadow-2xl">
+                <div className="text-3xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 mb-2 md:mb-3 animate-pulse drop-shadow-2xl">
                     WOW!
                 </div>
 
                 {/* "CONGRATULATIONS!" */}
-                <div className="text-2xl md:text-4xl font-bold text-white mb-6 md:mb-8 drop-shadow-lg animate-fade-in">
+                <div className="text-xl md:text-2xl font-bold text-white mb-3 md:mb-4 drop-shadow-lg animate-fade-in">
                     CONGRATULATIONS!
                 </div>
 
                 {/* Prize display */}
-                <div className="bg-gradient-to-br from-yellow-400 via-orange-500 to-red-500 p-1 rounded-2xl md:rounded-3xl shadow-2xl animate-glow mb-4 md:mb-6 max-w-sm mx-auto">
-                    <div className="bg-gradient-to-br from-gray-900 to-black rounded-2xl md:rounded-3xl p-4 md:p-8">
+                <div className="bg-gradient-to-br from-yellow-400 via-orange-500 to-red-500 p-1 rounded-xl md:rounded-2xl shadow-2xl animate-glow mb-3 md:mb-4 max-w-xs mx-auto">
+                    <div className="bg-gradient-to-br from-gray-900 to-black rounded-xl md:rounded-2xl p-3 md:p-4">
                         {isDiscount ? (
                             <>
-                                <div className="text-6xl md:text-8xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-orange-500 mb-2 md:mb-3 animate-prize-pulse">
+                                <div className="text-4xl md:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-orange-500 mb-1 md:mb-2 animate-prize-pulse">
                                     {prize}%
                                 </div>
-                                <div className="text-2xl md:text-3xl font-bold text-white">
+                                <div className="text-xl md:text-2xl font-bold text-white">
                                     DISCOUNT!
                                 </div>
                             </>
                         ) : (
                             <>
-                                <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 mb-3 inline-block">
+                                <div className="bg-white/10 backdrop-blur-sm rounded-lg p-2 mb-2 inline-block">
                                     <img 
                                         src={freeItemImages[prize as FreeItemType]} 
                                         alt={prize as string}
-                                        className="w-24 h-24 md:w-32 md:h-32 object-contain mx-auto animate-prize-pulse drop-shadow-2xl"
+                                        className="w-16 h-16 md:w-20 md:h-20 object-contain mx-auto animate-prize-pulse drop-shadow-2xl"
                                         style={{ mixBlendMode: 'normal' }}
                                     />
                                 </div>
-                                <div className="text-2xl md:text-3xl font-bold text-white">
+                                <div className="text-lg md:text-xl font-bold text-white">
                                     Free {prize}!
                                 </div>
                             </>
                         )}
-                        <div className="text-xs md:text-sm text-yellow-400 mt-2 md:mt-3 animate-pulse">
+                        <div className="text-xs text-yellow-400 mt-1 md:mt-2 animate-pulse">
                             ✨ Added to your account ✨
                         </div>
                     </div>
                 </div>
 
                 {/* Redirect message */}
-                <div className="text-white/80 text-base md:text-lg animate-fade-in" style={{ animationDelay: '0.5s' }}>
+                <div className="text-white/80 text-sm md:text-base animate-fade-in" style={{ animationDelay: '0.5s' }}>
                     Taking you to menu...
                 </div>
 
                 {/* Loading dots */}
-                <div className="flex justify-center gap-2 mt-3 md:mt-4">
+                <div className="flex justify-center gap-2 mt-2">
                     {[0, 1, 2].map(i => (
                         <div
                             key={i}

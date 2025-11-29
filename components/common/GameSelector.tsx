@@ -1,6 +1,6 @@
 import React from 'react';
 
-export type GameType = 'bouncing-ball' | 'spin-wheel' | 'slot-machine' | 'scratch-card';
+export type GameType = 'blackjack' | 'slot-machine' | 'scratch-card';
 
 interface GameSelectorProps {
     onSelectGame: (game: GameType) => void;
@@ -9,32 +9,21 @@ interface GameSelectorProps {
 const GameSelector: React.FC<GameSelectorProps> = ({ onSelectGame }) => {
     const games = [
         {
-            id: 'bouncing-ball' as GameType,
-            name: 'Bouncing Ball',
-            icon: '⚽',
-            description: 'Watch the ball eliminate items!',
-            color: 'from-blue-600 to-cyan-500',
+            id: 'blackjack' as GameType,
+            name: 'Blackjack',
+            icon: '♠️',
+            description: 'Beat the dealer to win!',
+            color: 'from-green-700 to-green-900',
             preview: (
-                <div className="relative w-full h-32 flex items-center justify-center overflow-hidden">
-                    <div className="absolute top-4 left-1/2 -translate-x-1/2 w-8 h-8 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full shadow-lg animate-bounce"></div>
-                    <div className="absolute bottom-6 left-1/4 w-12 h-1 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full"></div>
-                    <div className="absolute bottom-6 right-1/4 w-16 h-1 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-full"></div>
-                </div>
-            )
-        },
-        {
-            id: 'spin-wheel' as GameType,
-            name: 'Spin the Wheel',
-            icon: '🎡',
-            description: 'Spin to win your prize!',
-            color: 'from-purple-600 to-pink-500',
-            preview: (
-                <div className="relative w-full h-32 flex items-center justify-center">
-                    <div className="w-24 h-24 rounded-full border-8 border-gradient relative animate-spin-slow" style={{ 
-                        background: 'conic-gradient(from 0deg, #ff6b6b, #ffd93d, #6bcf7f, #4d96ff, #ff6b6b)',
-                        animationDuration: '8s'
-                    }}>
-                        <div className="absolute -top-6 left-1/2 -translate-x-1/2 w-0 h-0 border-l-8 border-r-8 border-t-8 border-l-transparent border-r-transparent border-t-white drop-shadow-lg"></div>
+                <div className="relative w-full h-32 flex items-center justify-center gap-2">
+                    <div className="w-14 h-20 bg-white rounded-lg border-2 border-gray-300 shadow-lg flex items-center justify-center">
+                        <div className="text-2xl text-red-600">♥️</div>
+                    </div>
+                    <div className="w-14 h-20 bg-white rounded-lg border-2 border-gray-300 shadow-lg flex items-center justify-center">
+                        <div className="text-2xl text-black">♠️</div>
+                    </div>
+                    <div className="w-14 h-20 bg-gradient-to-br from-blue-900 to-blue-700 rounded-lg border-2 border-blue-600 shadow-lg flex items-center justify-center">
+                        <div className="text-white text-2xl">🂠</div>
                     </div>
                 </div>
             )
@@ -80,12 +69,17 @@ const GameSelector: React.FC<GameSelectorProps> = ({ onSelectGame }) => {
     ];
 
     return (
-        <div className="relative h-full w-full bg-gradient-to-br from-orange-900 via-orange-700 to-red-800 rounded-xl overflow-hidden">
-            {/* Animated background */}
-            <div className="absolute inset-0 opacity-20">
-                <div className="absolute top-0 left-0 w-96 h-96 bg-yellow-400 rounded-full blur-3xl animate-pulse"></div>
-                <div className="absolute bottom-0 right-0 w-96 h-96 bg-orange-400 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
-            </div>
+        <div 
+            className="relative h-full w-full rounded-xl overflow-hidden"
+            style={{
+                backgroundImage: 'url(https://ik.imagekit.io/7grri5v7d/gambling%20images.png)',
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                backgroundRepeat: 'no-repeat'
+            }}
+        >
+            {/* Dark overlay for readability */}
+            <div className="absolute inset-0 bg-black/60"></div>
 
             {/* Content */}
             <div className="relative z-10 flex flex-col h-full p-6 pb-20">

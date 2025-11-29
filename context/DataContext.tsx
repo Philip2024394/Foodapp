@@ -1,6 +1,8 @@
 import React, { createContext, useState, useCallback, ReactNode, useEffect, useMemo } from 'react';
 import { MenuItem, ShopItem, Vendor, Vehicle, Destination, Room, Review, VehicleBooking, FoodType, MassageType, VehicleImageSet, Booking, DriverTourOffering, FoodOrder } from '../types';
-import { supabase } from '../lib/supabaseClient';
+// Moving away from Supabase; using Appwrite repositories
+import { VendorsRepo, ProductsRepo, BookingsRepo, Q } from '@/lib/appwriteRepositories';
+import { validateEnv } from '@/utils/envValidation';
 import { VENDORS_DATA, BALI_VENDORS_DATA } from '../mock-data/business';
 import { STREET_FOOD_ITEMS, SHOP_ITEMS, BALI_STREET_FOOD_ITEMS, BALI_SHOP_ITEMS } from '../mock-data/products';
 import { VEHICLES } from '../mock-data/vehicles';
@@ -147,334 +149,74 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setSavedBookingIds(prev => prev.filter(id => id !== bookingId));
     }, []);
     
-    // Effect to calculate live distances when location changes
+    // Basic env validation and live data load from Appwrite when auth is initialized
     useEffect(() => {
-        const calculateVendorDistances = (userLocation: string) => {
+        validateEnv();
+    }, []);
+
+    useEffect(() => {
+        const loadFromAppwrite = async () => {
             try {
-                if (!(window as any).google || !(window as any).google.maps || !(window as any).google.maps.DistanceMatrixService) {
-                    console.warn('Google Maps script not ready for distance calculation.');
-                    return;
-                }
+                const appVendors = await VendorsRepo.list([Q.limit(100)]);
+                setVendors((prev) => appVendors?.length ? (appVendors as any) : prev);
 
-                const vendorDestinations = vendors.map(v => `${v.street}, ${v.address}`);
-                if (vendorDestinations.length === 0) return;
-
-                const service = new (window as any).google.maps.DistanceMatrixService();
-                service.getDistanceMatrix(
-                    {
-                        origins: [userLocation],
-                        destinations: vendorDestinations,
-                        travelMode: 'DRIVING',
-                    },
-                    (response: any, status: any) => {
-                        if (status === 'OK' && response.rows?.[0]?.elements) {
-                            const elements = response.rows[0].elements;
-                            const updatedVendors = vendors.map((vendor, index) => {
-                                if (elements[index]?.status === 'OK') {
-                                    const distanceInKm = parseFloat((elements[index].distance.value / 1000).toFixed(1));
-                                    return { ...vendor, distance: distanceInKm };
-                                }
-                                return vendor;
-                            });
-                            setVendors(updatedVendors);
-                        } else {
-                            console.warn("Distance Matrix failed for vendors:", status);
-                        }
-                    }
-                );
-            } catch (error) {
-                 console.error("Error calling Google Maps for vendor distances:", error);
-            }
-        };
-
-        const calculateDestinationDistances = () => {
-             navigator.geolocation.getCurrentPosition(
-                (position) => {
-                    const { latitude, longitude } = position.coords;
-                    setDestinations(prevDests => prevDests.map(dest => {
-                        if (dest.coords) {
-                            const distance = calculateHaversineDistance(latitude, longitude, dest.coords.lat, dest.coords.lng);
-                            return { ...dest, distance };
-                        }
-                        return dest;
+                const appProducts = await ProductsRepo.list([Q.limit(200)]);
+                if (appProducts?.length) {
+                    const mappedFood: MenuItem[] = (appProducts as any).map((p: any) => ({
+                        id: p.$id || p.id,
+                        name: p.name,
+                        price: p.price,
+                        description: p.description,
+                        image: p.image || p.photo || '',
+                        vendorId: p.vendorId,
+                        isAvailable: p.isAvailable === true || p.isAvailable === 'true',
+                        category: p.category,
+                        subcategory: p.subcategory,
+                        chiliLevel: p.chiliLevel,
+                        cookingTime: p.preparationTime,
                     }));
-                },
-                (err) => {
-                    console.warn("Could not get user geolocation for distance calculation:", err.message);
+                    setStreetFoodItems(mappedFood);
                 }
-            );
-        }
-        
-        if (isInitialized && !isMockMode && location) {
-            calculateVendorDistances(location);
-            calculateDestinationDistances();
-        }
-    }, [isInitialized, isMockMode, location, vendors]);
-
-
-    /*
-    // FIX: Commented out the Supabase data fetching to prevent network errors.
-    // The application will now reliably use the mock data defined above.
-    useEffect(() => {
-        const getVehicleImages = async (vehicleType: 'bike' | 'car' | 'truck'): Promise<VehicleImageSet | null> => {
-            const tableName = `${vehicleType}images`;
-            try {
-                const { data, error } = await supabase
-                    .from(tableName)
-                    .select('searching, on_the_way, arrived, completed')
-                    .eq('id', 1)
-                    .single();
-
-                if (error) {
-                    console.error(`Error fetching images for ${vehicleType}:`, error);
-                    return null;
-                }
-                return data as VehicleImageSet;
+                setIsMockMode(false);
             } catch (e) {
-                console.error(`An unexpected error occurred in getVehicleImages for ${vehicleType}:`, e);
-                return null;
+                console.warn('Falling back to mock data; Appwrite fetch failed.', e);
+                setIsMockMode(true);
             }
         };
-
-        const fetchAndReplaceData = async () => {
-          try {
-            const { data: partnersData, error: partnersError } = await supabase.from('profiles').select('*');
-            const { data: vendorItemsData, error: itemsError } = await supabase.from('vendor_items').select('*').eq('isAvailable', true);
-            const { data: vehiclesData, error: vehiclesError } = await supabase.from('vehicles').select('*'); // Fetch all vehicles
-            const { data: foodTypesData, error: foodTypesError } = await supabase.from('food_types').select('id, name, description, imageUrl').eq('isEnabled', true);
-            const { data: massageTypesData, error: massageTypesError } = await supabase.from('massage_types').select('id, name, description, "imageUrl", category').eq('isEnabled', true);
-            const { data: tourDestinationsData, error: tourDestinationsError } = await supabase.from('tour_destinations').select('*');
-            const { data: tourOfferingsData, error: tourOfferingsError } = await supabase.from('driver_tour_offerings').select('*');
-            
-            const [bikeImages, carImages, truckImages] = await Promise.all([
-                getVehicleImages('bike'),
-                getVehicleImages('car'),
-                getVehicleImages('truck')
-            ]);
-
-            if (partnersError || itemsError || vehiclesError || foodTypesError || massageTypesError || tourDestinationsError || tourOfferingsError) {
-              throw new Error(`Supabase fetch error: ${partnersError?.message || itemsError?.message || vehiclesError?.message || foodTypesError?.message || massageTypesError?.message || tourDestinationsError?.message || tourOfferingsError?.message}`);
-            }
-            
-            setVehicleImageSets({ bike: bikeImages, car: carImages, truck: truckImages });
-
-            if (bikeImages || carImages || truckImages) {
-                console.log("Successfully fetched vehicle status images from Supabase.");
-            } else {
-                console.warn("Failed to fetch any vehicle image sets from Supabase. Status-specific images will be unavailable, falling back to driver profiles.");
-            }
-
-            const mappedFoodTypes: FoodType[] = (foodTypesData || []).map((ft: any) => ({ id: ft.id, name: ft.name, description: ft.description, imageUrl: ft.imageUrl }));
-            setFoodTypes(mappedFoodTypes);
-
-            const mappedMassageTypes: MassageType[] = (massageTypesData || []).map((mt: any) => ({ id: mt.id, name: mt.name, description: mt.description, imageUrl: mt.imageUrl, category: mt.category }));
-            setMassageTypes(mappedMassageTypes);
-            
-            const mappedVendors: Vendor[] = (partnersData || []).map((v: any) => ({
-                id: v.id, name: v.name, type: v.type, address: v.address, street: v.street, rating: v.rating, distance: v.distance,
-                headerImage: v.header_image_url, image: v.image_url, whatsapp: v.whatsapp, bankDetails: v.bank_details,
-                logo: v.logo_url, tagline: v.tagline, description: v.description, category: v.category,
-                subcategories: v.subcategories, license: v.license, website: v.website,
-                openingHours: v.opening_hours, socialMedia: v.social_media, serviceArea: v.service_area,
-                photos: v.gallery_photos ? v.gallery_photos.map((p: any) => ({ url: p.url, name: `Photo ${p.order}` })) : v.photos,
-                discounts: v.discounts, bio: v.bio, cuisine: v.cuisine,
-                vehicleIds: v.vehicle_ids, isOfficiallyRegistered: v.is_officially_registered,
-                yearsInBusiness: v.years_in_business, exportCountries: v.export_countries,
-                languagesSpoken: v.languages_spoken, hasShowroom: v.has_showroom,
-                subType: v.sub_type, status: v.status, massageTypes: v.massage_types, prices: v.prices,
-                otherServices: v.other_services, checkInTime: v.check_in_time, airportPickup: v.airport_pickup,
-                roomIds: v.room_ids, hotelVillaAmenities: v.hotel_villa_amenities, loyaltyRewardEnabled: v.loyalty_reward_enabled,
-            }));
-            const liveVendorIds = new Set(mappedVendors.map(v => v.id));
-            const mockVendorsToAdd = ALL_MOCK_VENDORS.filter(mockV => !liveVendorIds.has(mockV.id));
-            const combinedVendors = [...mappedVendors, ...mockVendorsToAdd];
-            setVendors(combinedVendors);
-            
-            const foodTypeMap = new Map((foodTypesData || []).map((ft: {id: any; name: string}) => [ft.id, ft.name]));
-            const vendorTypeMap = new Map(combinedVendors.map(v => [v.id, v.type]));
-            const liveFood: MenuItem[] = [];
-            const liveShop: ShopItem[] = [];
-            const availabilityFromLive: { [key: string]: boolean } = {};
-    
-            (vendorItemsData || []).forEach((p: any) => {
-              availabilityFromLive[p.id] = p.is_available;
-              const vendorType = vendorTypeMap.get(p.vendor_id);
-              
-              if (vendorType === 'food') {
-                liveFood.push({
-                  id: p.id, name: p.name, price: p.price, description: p.description, 
-                  longDescription: p.long_description, image: p.photo, vendorId: p.vendor_id, 
-                  category: foodTypeMap.get(p.category) || p.category,
-                  subcategory: p.subcategory, isAvailable: p.is_available, 
-                  chiliLevel: p.chili_level, cookingTime: p.cooking_time,
-                });
-              } else if (vendorType === 'shop' || vendorType === 'business') {
-                liveShop.push({
-                  id: p.id, name: p.name, price: p.price, description: p.description, 
-                  image: p.photo, vendorId: p.vendor_id, isAvailable: p.is_available,
-                });
-              }
-            });
-
-            const liveFoodIds = new Set(liveFood.map(f => f.id));
-            const mockFoodToAdd = ALL_MOCK_FOOD_ITEMS.filter(mockF => !liveFoodIds.has(mockF.id));
-            setStreetFoodItems([...liveFood, ...mockFoodToAdd]);
-            
-            const liveShopIds = new Set(liveShop.map(s => s.id));
-            const mockShopToAdd = ALL_MOCK_SHOP_ITEMS.filter(mockS => !liveShopIds.has(mockS.id));
-            setShopItems([...liveShop, ...mockShopToAdd]);
-            
-            setItemAvailability(prev => ({ ...prev, ...availabilityFromLive }));
-            
-            const mappedVehicles: Vehicle[] = (vehiclesData || []).map((v: any) => ({
-                id: v.id, type: v.type, serviceType: v.service_type, name: v.name, driver: v.driver,
-                driverImage: v.driver_image, driverRating: v.driver_rating, plate: v.plate,
-                ratePerKmRide: v.rate_per_km_ride, ratePerKmParcel: v.rate_per_km_parcel, 
-                rentalRatePerHour: v.rental_rate_per_hour, rentalRatePerDay: v.rental_rate_per_day,
-                bankDetails: v.bank_details, isAvailable: v.is_available,
-                modelCc: v.model_cc, color: v.color, registrationYear: v.registration_year,
-                seats: v.seats, zone: v.zone, whatsapp: v.whatsapp,
-                listingType: v.listing_type, salePrice: v.sale_price,
-                isRentalEnabled: v.is_rental_enabled, helmets: v.helmets,
-                raincoats: v.raincoats, transmission: v.transmission, canDeliver: v.can_deliver,
-                images: v.images, driverBio: v.driver_bio, tripsBooked: v.trips_booked,
-                cancellations: v.cancellations, isVerified: v.is_verified,
-            }));
-            const liveVehicleIds = new Set(mappedVehicles.map(v => v.id));
-            const mockVehiclesToAdd = ALL_MOCK_VEHICLES.filter(mockV => !liveVehicleIds.has(mockV.id));
-            setVehicles([...mappedVehicles, ...mockVehiclesToAdd]);
-
-            const mappedDestinations: Destination[] = (tourDestinationsData || []).map((d: any) => {
-                const touristInfo = d.touristInfo || {}; // FIX: Fallback for null/undefined touristInfo
-                return {
-                    id: d.id,
-                    name: d.name,
-                    category: d.category,
-                    image: d.imageUrl,
-                    bio: d.description,
-                    distance: 999, // Placeholder distance
-                    rating: ALL_MOCK_DESTINATIONS.find(mock => mock.id === d.id)?.rating || 4.5, // Use mock rating as fallback
-                    info: {
-                        food: touristInfo.food ?? 'Not specified',
-                        toilets: touristInfo.toilets === 'Yes' ? true : (touristInfo.toilets === 'No' ? false : touristInfo.toilets ?? 'Not specified'),
-                        childFriendly: touristInfo.childSafety ?? 'Not specified',
-                        guideNeeded: touristInfo.guideNeeded ?? 'Not specified',
-                        insectRisk: touristInfo.insectRisk ?? 'Not specified',
-                        openingHours: touristInfo.openingHours ?? 'Not specified',
-                    },
-                    coords: d.location,
-                };
-            });
-            const liveDestinationIds = new Set(mappedDestinations.map(d => d.id));
-            const mockDestinationsToAdd = ALL_MOCK_DESTINATIONS.filter(mockD => !liveDestinationIds.has(mockD.id));
-            setDestinations([...mappedDestinations, ...mockDestinationsToAdd]);
-
-            const mappedTourOfferings: DriverTourOffering[] = (tourOfferingsData || []).map((o: any) => ({
-                id: o.id,
-                vehicleId: o.vehicle_id,
-                tourId: o.tour_id,
-                price: o.price,
-                isActive: true,
-            }));
-            const liveOfferingIds = new Set(mappedTourOfferings.map(o => o.id));
-            const mockOfferingsToAdd = ALL_MOCK_TOUR_OFFERINGS.filter(mockO => !liveOfferingIds.has(mockO.id));
-            setDriverTourOfferings([...mappedTourOfferings, ...mockOfferingsToAdd]);
-            
-            setRooms(ROOMS_DATA);
-            setReviews(ALL_MOCK_REVIEWS);
-            setVehicleBookings(ALL_MOCK_VEHICLE_BOOKINGS);
-            
-            setIsMockMode(false);
-            console.log("Successfully fetched and replaced mock data with live Supabase data.");
-            
-          } catch (error) {
-            console.error("Error fetching live data from Supabase. Please check your Supabase console for the following issues:\n1. Ensure tables 'profiles', 'vendor_items', 'vehicles', 'food_types', 'massage_types', 'tour_destinations' and 'driver_tour_offerings' exist.\n2. Ensure RLS policies allow read operations for unauthenticated users on these tables.\n\nDetailed Error:\n", error);
-            console.warn("Could not connect to Supabase. The app will continue to run in design mode with pre-loaded mock data.");
-            setIsMockMode(true);
-          }
-        };
-    
-        if(isInitialized) {
-          fetchAndReplaceData();
-
-          const handleDbChange = (payload: any) => {
-              console.log('Database change detected, refetching all data:', payload);
-              fetchAndReplaceData();
-          };
-          
-          const subscription = supabase.channel('public:db-changes')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, handleDbChange)
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'prices' }, handleDbChange)
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'gallery_photos' }, handleDbChange)
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'vendor_items' }, handleDbChange)
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'vehicles' }, handleDbChange)
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'food_types' }, handleDbChange)
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'massage_types' }, handleDbChange)
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'tour_destinations' }, handleDbChange)
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'driver_tour_offerings' }, handleDbChange)
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'bikeimages' }, handleDbChange)
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'carimages' }, handleDbChange)
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'truckimages' }, handleDbChange)
-            .subscribe();
-          
-          return () => {
-            supabase.removeChannel(subscription);
-          };
+        if (isInitialized) {
+            loadFromAppwrite();
         }
     }, [isInitialized]);
-    */
 
-    useEffect(() => {
-        if (isMockMode || !vehicles.length) return;
-
-        const fetchAndSetHistory = async (userId: string) => {
-            const { data, error } = await supabase
-                .from('bookings')
-                .select('*')
-                .eq('user_id', userId)
-                .order('created_at', { ascending: false });
-
-            if (error) {
-                console.error("Error fetching booking history:", error);
-                setBookingHistory([]);
-                return;
-            }
-
-            const history: Booking[] = data.map((b: any) => {
-                const driver = vehicles.find(v => v.id === b.driver_id);
-                if (!driver) return null; // Or a fallback object
-                return {
-                    id: b.id,
-                    type: b.type,
-                    details: b.details,
-                    driver: driver,
-                    status: b.status,
-                    updated_at: b.updated_at,
-                };
-            }).filter((b): b is Booking => b !== null);
-            setBookingHistory(history);
-        };
-
-        if (user) {
-            fetchAndSetHistory(user.id);
-
-            const subscription = supabase.channel(`public:bookings:user_id=eq.${user.id}`)
-                .on('postgres_changes', { 
-                    event: '*', 
-                    schema: 'public', 
-                    table: 'bookings', 
-                    filter: `user_id=eq.${user.id}` 
-                }, 
-                () => fetchAndSetHistory(user.id))
-                .subscribe();
-
-            return () => {
-                supabase.removeChannel(subscription);
+        // Fetch booking history from Appwrite when user present
+        useEffect(() => {
+            const fetchAndSetHistory = async (userId: string) => {
+                try {
+                    const docs = await BookingsRepo.list([Q.equal('userId', userId), Q.orderDesc('createdAt'), Q.limit(50)]);
+                    const history: Booking[] = (docs || []).map((b: any) => {
+                        const driver = vehicles.find(v => v.id === b.driverId || v.id === b.vendorId);
+                        if (!driver) return null;
+                        return {
+                            id: b.$id || b.id,
+                            type: b.type,
+                            details: b.details,
+                            driver,
+                            status: b.status,
+                            updated_at: b.updatedAt || b.updated_at,
+                        };
+                    }).filter((b): b is Booking => b !== null);
+                    setBookingHistory(history);
+                } catch (e) {
+                    console.warn('Could not load booking history from Appwrite', e);
+                    setBookingHistory([]);
+                }
             };
-        } else {
-            setBookingHistory([]);
-        }
-    }, [user, isMockMode, vehicles]);
+            if (user) {
+                fetchAndSetHistory(user.id);
+            } else {
+                setBookingHistory([]);
+            }
+        }, [user, vehicles]);
 
 
     const toggleItemAvailability = useCallback((itemId: string) => {

@@ -12,6 +12,7 @@ export enum Page {
   PROFILE = 'PROFILE',
   REVIEWS = 'REVIEWS',
   RESTAURANT_DASHBOARD = 'RESTAURANT_DASHBOARD',
+  RESTAURANT_AUTH = 'RESTAURANT_AUTH',
   PROMO_VIDEOS = 'PROMO_VIDEOS',
 }
 
@@ -64,6 +65,21 @@ export enum PaymentProvider {
   GOPAY = 'GoPay',
   OVO = 'OVO',
   DANA = 'DANA'
+}
+
+export enum Language {
+  INDONESIAN = 'Indonesian (Bahasa Indonesia)',
+  ENGLISH = 'English',
+  JAVANESE = 'Javanese (Bahasa Jawa)',
+  SUNDANESE = 'Sundanese (Bahasa Sunda)',
+  CHINESE = 'Chinese (Mandarin)',
+  ARABIC = 'Arabic',
+  DUTCH = 'Dutch',
+  JAPANESE = 'Japanese',
+  KOREAN = 'Korean',
+  FRENCH = 'French',
+  GERMAN = 'German',
+  SPANISH = 'Spanish'
 }
 
 export enum ReviewEmoji {
@@ -696,6 +712,15 @@ export interface CartItem {
   specialInstructions?: string; // Chef instructions (max 500 chars)
 }
 
+export enum PaymentStatus {
+  PENDING = 'PENDING', // Order created, waiting for payment action
+  PROOF_UPLOADED = 'PROOF_UPLOADED', // Customer uploaded transfer proof
+  VERIFIED = 'VERIFIED', // Restaurant verified payment
+  PAID_CASH = 'PAID_CASH', // Cash on delivery payment confirmed
+  REJECTED = 'REJECTED', // Restaurant rejected payment proof
+  EXPIRED = 'EXPIRED' // Timer expired without proof upload
+}
+
 export interface FoodOrder {
   id: string;
   vendorId: string;
@@ -711,7 +736,23 @@ export interface FoodOrder {
   total: number;
   paymentMethod: PaymentMethod;
   paymentProvider?: PaymentProvider; // If bank transfer selected
-  transferProof?: string; // Screenshot URL if bank transfer
+  transferProof?: string; // Screenshot URL if bank transfer (legacy)
+  
+  // Enhanced Payment System Fields (MVP + Version 2)
+  paymentStatus: PaymentStatus; // Current payment state
+  paymentProofUrl?: string; // URL to uploaded payment proof image
+  paymentProofUploadedAt?: string; // ISO timestamp when proof was uploaded
+  paymentTimerExpiresAt?: string; // ISO timestamp when 10-min timer expires (Version 2)
+  paymentVerifiedAt?: string; // ISO timestamp when restaurant verified
+  paymentVerifiedBy?: string; // Restaurant staff who verified (userId/name)
+  paymentRejectionReason?: string; // Reason if payment was rejected
+  paymentAutoApproved?: boolean; // True if auto-approved after timeout (Version 2)
+  
+  // Restaurant Bank Details (cached at order time for customer reference)
+  restaurantBankName?: string; // e.g., "BCA"
+  restaurantAccountNumber?: string; // e.g., "1234567890"
+  restaurantAccountHolder?: string; // e.g., "PT Warung Makan"
+  
   status: OrderStatus;
   statusHistory: {
     status: OrderStatus;
@@ -732,7 +773,7 @@ export interface FoodOrder {
   specialInstructions?: string;
   reviewed?: boolean; // Has customer left a review
   reviewId?: string;
-  paymentProof?: string; // URL to uploaded image
+  paymentProof?: string; // URL to uploaded image (legacy - use paymentProofUrl)
   notes?: string;
 }
 

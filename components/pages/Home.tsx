@@ -32,10 +32,12 @@ const Home: React.FC = () => {
   const handleServiceClick = (title: string) => {
     switch (title) {
         case 'Car - Bike':
-            console.log('Ride booking not yet implemented');
+            // Open Transport App - Ride Services (Bike, Car, Tuktuk, Bajaj for rides & food delivery)
+            window.open('http://localhost:5174', '_blank', 'width=1200,height=900');
             break;
         case 'Parcel':
-            console.log('Parcel booking not yet implemented');
+            // Open Transport App - Parcel Services (Bike, Car, Tuktuk, Box Lorry, Flatbed Lorry)
+            window.open('http://localhost:5174?service=parcel', '_blank', 'width=1200,height=900');
             break;
         case 'Rentals':
             navigateTo(Page.RENTAL);

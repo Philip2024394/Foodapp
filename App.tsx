@@ -25,6 +25,7 @@ const VendorPage = lazy(() => import('./components/pages/VendorPage'));
 const Profile = lazy(() => import('./components/pages/Profile'));
 const ReviewsPage = lazy(() => import('./components/pages/ReviewsPage'));
 const RestaurantDashboard = lazy(() => import('./components/pages/RestaurantDashboard'));
+const RestaurantAuth = lazy(() => import('./components/pages/RestaurantAuth'));
 const PromoVideos = lazy(() => import('./components/pages/PromoVideos'));
 
 
@@ -102,6 +103,8 @@ const App: React.FC = () => {
         return <ReviewsPage />;
       case Page.RESTAURANT_DASHBOARD:
         return <RestaurantDashboard />;
+      case Page.RESTAURANT_AUTH:
+        return <RestaurantAuth />;
       case Page.PROMO_VIDEOS:
         return <PromoVideos />;
       default:

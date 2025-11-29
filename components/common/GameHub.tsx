@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Vendor, FreeItemType, MembershipTier } from '../../types';
 import GameSelector, { GameType } from './GameSelector';
-import BouncingBallGame from './BouncingBallGame';
-import SpinWheelGame from './SpinWheelGame';
+import BlackjackGame from './BlackjackGame';
 import SlotMachineGame from './SlotMachineGame';
 import ScratchCardGame from './ScratchCardGame';
 import WinCelebration from './WinCelebration';
@@ -180,24 +179,12 @@ const GameHub: React.FC<GameHubProps> = ({ vendor, onWin, onNavigateToMenu }) =>
     // Game view
     if (currentView === 'game' && selectedGame) {
         switch (selectedGame) {
-            case 'bouncing-ball':
-                return <BouncingBallGame vendor={vendor} onWin={handleGameWin} onBack={handleBackToSelector} />;
-            case 'spin-wheel':
-                return <SpinWheelGame vendor={vendor} onWin={handleGameWin} onBack={handleBackToSelector} />;
+            case 'blackjack':
+                return <BlackjackGame vendor={vendor} onWin={handleGameWin} onBack={handleBackToSelector} />;
             case 'slot-machine':
                 return <SlotMachineGame vendor={vendor} onWin={handleGameWin} onBack={handleBackToSelector} />;
             case 'scratch-card':
-                return (
-                    <div className="relative h-full w-full">
-                        <ScratchCardGame vendor={vendor} onWin={handleGameWin} />
-                        <button 
-                            onClick={handleBackToSelector}
-                            className="absolute top-4 left-4 text-white/60 hover:text-white transition-colors text-2xl z-50"
-                        >
-                            ←
-                        </button>
-                    </div>
-                );
+                return <ScratchCardGame vendor={vendor} onWin={handleGameWin} onBack={handleBackToSelector} />;
             default:
                 return null;
         }

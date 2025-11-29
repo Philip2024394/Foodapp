@@ -39,7 +39,7 @@ const Chat: React.FC = () => {
         }
     }, []);
 
-    // Supabase real-time listener for messages
+    // Real-time messaging - TODO: Implement with Appwrite Realtime
     useEffect(() => {
         if (!currentBooking || isMockMode) {
             return;
@@ -158,7 +158,7 @@ const Chat: React.FC = () => {
     }, [messages, isMockMode, language, setMessages]);
     
     useEffect(() => {
-        if (messages.some(m => m.sender === 'user' && typeof m.id === 'number' )) { // check for supabase id
+        if (messages.some(m => m.sender === 'user' && typeof m.id === 'string')) {
             userManuallyMessaged.current = true;
         }
 

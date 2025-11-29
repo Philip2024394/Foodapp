@@ -3,6 +3,7 @@ import DisplayText from '../common/DisplayText';
 import { useAuthContext } from '../../hooks/useAuthContext';
 import { useNavigationContext } from '../../hooks/useNavigationContext';
 import { Page } from '../../types';
+import AuthHealth from '../common/AuthHealth';
 
 const Landing: React.FC = () => {
   const { selectLanguage } = useAuthContext();
@@ -59,13 +60,14 @@ const Landing: React.FC = () => {
           <button
             onClick={() => {
               selectLanguage('en');
-              navigateTo(Page.RESTAURANT_DASHBOARD);
+              navigateTo(Page.RESTAURANT_AUTH);
             }}
             className="px-8 py-3 bg-orange-500 backdrop-blur-lg border border-orange-600 text-white font-bold rounded-full shadow-lg hover:bg-orange-600 transform hover:scale-105 transition-all duration-300"
           >
             🏪 Restaurant Dashboard
           </button>
         </div>
+        <AuthHealth />
       </div>
     </div>
   );

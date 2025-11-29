@@ -1,7 +1,7 @@
 import React, { createContext, useState, useCallback, ReactNode, useEffect } from 'react';
 import { Page } from '../types';
-import { User, Session } from '@supabase/supabase-js';
-import { supabase } from '../lib/supabaseClient';
+import { account } from '../lib/appwrite';
+import { Models } from 'appwrite';
 
 interface AuthContextType {
   isInitialized: boolean;
@@ -9,15 +9,15 @@ interface AuthContextType {
   location: string | null;
   whatsappNumber: string | null;
   showLocationModal: boolean;
-  user: User | null;
-  session: Session | null;
+  user: Models.User<Models.Preferences> | null;
+  session: Models.Session | null;
   setIsInitialized: (isInitialized: boolean) => void;
   selectLanguage: (lang: 'en' | 'id') => void;
   confirmLocation: (location: string, phone?: string) => void;
   openLocationModal: () => void;
   closeLocationModal: () => void;
   signIn: (credentials: { email: string, password: string }) => Promise<any>;
-  signUp: (credentials: { email: string, password: string }) => Promise<any>;
+  signUp: (credentials: { email: string, password: string, name?: string }) => Promise<any>;
   signOut: () => Promise<void>;
 }
 
@@ -30,27 +30,26 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [whatsappNumber, setWhatsappNumber] = useState<string | null>(null);
   const [showLocationModal, setShowLocationModal] = useState<boolean>(false);
 
-  const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
+  const [user, setUser] = useState<Models.User<Models.Preferences> | null>(null);
+  const [session, setSession] = useState<Models.Session | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const getSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
+    const checkAuth = async () => {
+      try {
+        const currentUser = await account.get();
+        setUser(currentUser);
+        const currentSession = await account.getSession('current');
+        setSession(currentSession);
+      } catch (error) {
+        // Not authenticated
+        setUser(null);
+        setSession(null);
+      } finally {
+        setLoading(false);
+      }
     };
-    getSession();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-    });
-
-    return () => {
-      subscription?.unsubscribe();
-    };
+    checkAuth();
   }, []);
 
 
@@ -79,20 +78,40 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, []);
 
   const signIn = async (credentials: { email: string, password: string }) => {
-    const { data, error } = await supabase.auth.signInWithPassword(credentials);
-    if (error) throw error;
-    return data;
+    // Clear any existing session first
+    try {
+      await account.deleteSession('current');
+    } catch {
+      // No existing session
+    }
+    const session = await account.createEmailPasswordSession(credentials.email, credentials.password);
+    const currentUser = await account.get();
+    setUser(currentUser);
+    setSession(session);
+    return { session, user: currentUser };
   };
 
-  const signUp = async (credentials: { email: string, password: string }) => {
-    const { data, error } = await supabase.auth.signUp(credentials);
-    if (error) throw error;
-    return data;
+  const signUp = async (credentials: { email: string, password: string, name?: string }) => {
+    // Clear any existing session first
+    try {
+      await account.deleteSession('current');
+    } catch {
+      // No existing session
+    }
+    const { ID } = await import('../lib/appwrite');
+    const newUser = await account.create(ID.unique(), credentials.email, credentials.password, credentials.name);
+    // Auto sign-in after signup
+    const session = await account.createEmailPasswordSession(credentials.email, credentials.password);
+    const currentUser = await account.get();
+    setUser(currentUser);
+    setSession(session);
+    return { session, user: currentUser };
   };
 
   const signOut = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) throw error;
+    await account.deleteSession('current');
+    setUser(null);
+    setSession(null);
   };
 
   const value = {

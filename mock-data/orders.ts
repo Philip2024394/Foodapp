@@ -1,4 +1,4 @@
-import { FoodOrder, OrderStatus } from '../types';
+import { FoodOrder, OrderStatus, PaymentMethod, PaymentStatus } from '../types';
 
 // Mock orders for restaurants
 export const MOCK_ORDERS: FoodOrder[] = [
@@ -51,7 +51,8 @@ export const MOCK_ORDERS: FoodOrder[] = [
     subtotal: 60000,
     deliveryFee: 12000,
     total: 72000,
-    paymentMethod: 'Cash on Delivery' as any,
+    paymentMethod: PaymentMethod.CASH_ON_DELIVERY,
+    paymentStatus: PaymentStatus.PAID_CASH,
     status: OrderStatus.PENDING,
     statusHistory: [
       {
@@ -94,7 +95,8 @@ export const MOCK_ORDERS: FoodOrder[] = [
     subtotal: 22000,
     deliveryFee: 12000,
     total: 34000,
-    paymentMethod: 'Bank Transfer' as any,
+    paymentMethod: PaymentMethod.BANK_TRANSFER,
+    paymentStatus: PaymentStatus.VERIFIED,
     status: OrderStatus.PREPARING,
     statusHistory: [
       {
@@ -147,7 +149,8 @@ export const MOCK_ORDERS: FoodOrder[] = [
     subtotal: 84000,
     deliveryFee: 12000,
     total: 96000,
-    paymentMethod: 'Cash on Delivery' as any,
+    paymentMethod: PaymentMethod.CASH_ON_DELIVERY,
+    paymentStatus: PaymentStatus.PAID_CASH,
     status: OrderStatus.READY,
     statusHistory: [
       {
@@ -223,7 +226,8 @@ export const MOCK_ORDERS: FoodOrder[] = [
     subtotal: 55000,
     deliveryFee: 12000,
     total: 67000,
-    paymentMethod: 'Cash on Delivery' as any,
+    paymentMethod: PaymentMethod.CASH_ON_DELIVERY,
+    paymentStatus: PaymentStatus.PAID_CASH,
     status: OrderStatus.ON_THE_WAY,
     statusHistory: [
       {

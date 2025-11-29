@@ -252,13 +252,13 @@ const FlipProfileCard: FC<FlipProfileCardProps> = ({ vendor, galleryImages, onIm
             <div className="flip-card-inner rounded-2xl shadow-2xl">
                 {/* Front Face */}
                 <div className={`flip-card-front bg-stone-900 ${isFlipped ? 'pointer-events-none' : 'pointer-events-auto'}`}>
-                    <img src={vendor.headerImage} alt={vendor.name} className="w-full h-full object-cover" />
+                    <img src={(vendor as any).headerImageFileId ? (require('../../lib/storageHelpers') as any).getImageUrl((vendor as any).headerImageFileId) : vendor.headerImage} alt={vendor.name} className="w-full h-full object-cover" />
                     <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent"></div>
                     
                     {/* Floating Logo */}
                     <div className="absolute top-6 left-6 z-20">
-                         <img 
-                            src={vendor.logo || vendor.image} 
+                                 <img 
+                                     src={(vendor as any).logoFileId ? (require('../../lib/storageHelpers') as any).getImageUrl((vendor as any).logoFileId) : (vendor.logo || vendor.image)} 
                             alt={vendor.name} 
                             className="w-32 h-32 rounded-full object-cover border-4 border-orange-500 bg-stone-800 shadow-2xl"
                         />

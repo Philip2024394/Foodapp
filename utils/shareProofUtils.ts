@@ -69,7 +69,7 @@ export const notifyRestaurantOfShare = (
 
 /**
  * Upload screenshot to storage (placeholder - integrate with your storage solution)
- * In production, this would upload to Firebase Storage, Supabase Storage, or S3
+ * In production, this would upload to Appwrite Storage
  */
 export const uploadScreenshot = async (file: File, shareProofId: string): Promise<string> => {
     // Placeholder: In production, implement actual upload logic
@@ -87,7 +87,7 @@ export const uploadScreenshot = async (file: File, shareProofId: string): Promis
  * Save share proof to database (placeholder)
  */
 export const saveShareProof = async (shareProof: ShareProof): Promise<void> => {
-    // Placeholder: In production, save to Supabase or Firebase
+    // TODO: Save to Appwrite database
     console.log('Saving share proof:', shareProof);
     
     // Store in localStorage for demo

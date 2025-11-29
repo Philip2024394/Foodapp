@@ -6,9 +6,10 @@ type RewardValue = number | FreeItemType;
 interface ScratchCardGameProps {
     vendor: Vendor;
     onWin: (percentage: number) => void;
+    onBack: () => void;
 }
 
-const ScratchCardGame: React.FC<ScratchCardGameProps> = ({ vendor, onWin }) => {
+const ScratchCardGame: React.FC<ScratchCardGameProps> = ({ vendor, onWin, onBack }) => {
     const [selectedBoxes, setSelectedBoxes] = useState<number[]>([]);
     const [revealedValues, setRevealedValues] = useState<Record<number, RewardValue>>({});
     const [gameResult, setGameResult] = useState<'playing' | 'won' | 'lost' | 'cooldown'>('playing');
@@ -17,6 +18,7 @@ const ScratchCardGame: React.FC<ScratchCardGameProps> = ({ vendor, onWin }) => {
     const [wonPercentage, setWonPercentage] = useState<number>(0);
     const [wonFreeItem, setWonFreeItem] = useState<FreeItemType | null>(null);
     const [showingResult, setShowingResult] = useState<boolean>(false);
+    const [attemptsRemaining, setAttemptsRemaining] = useState<number>(3);
 
     // Get game settings from vendor (with defaults)
     const maxDiscount = vendor.scratchCardSettings?.maxDiscount || 20;
@@ -102,16 +104,32 @@ const ScratchCardGame: React.FC<ScratchCardGameProps> = ({ vendor, onWin }) => {
     // Check cooldown on mount
     useEffect(() => {
         const cooldownKey = `scratchcard_cooldown_${vendor.id}`;
+        const attemptsKey = `scratchcard_attempts_${vendor.id}`;
         const savedCooldown = localStorage.getItem(cooldownKey);
+        const savedAttempts = localStorage.getItem(attemptsKey);
         
-        if (savedCooldown) {
-            const endTime = parseInt(savedCooldown);
-            if (Date.now() < endTime) {
-                setCooldownEnd(endTime);
-                setGameResult('cooldown');
-            } else {
-                localStorage.removeItem(cooldownKey);
+        // Load remaining attempts
+        if (savedAttempts) {
+            const attempts = parseInt(savedAttempts);
+            setAttemptsRemaining(attempts);
+            
+            // If no attempts left, check cooldown
+            if (attempts <= 0 && savedCooldown) {
+                const endTime = parseInt(savedCooldown);
+                if (Date.now() < endTime) {
+                    setCooldownEnd(endTime);
+                    setGameResult('cooldown');
+                } else {
+                    // Cooldown expired, reset attempts
+                    localStorage.removeItem(cooldownKey);
+                    localStorage.setItem(attemptsKey, '3');
+                    setAttemptsRemaining(3);
+                }
             }
+        } else {
+            // First time, set 3 attempts
+            localStorage.setItem(attemptsKey, '3');
+            setAttemptsRemaining(3);
         }
     }, [vendor.id]);
 
@@ -126,9 +144,11 @@ const ScratchCardGame: React.FC<ScratchCardGameProps> = ({ vendor, onWin }) => {
                     setGameResult('playing');
                     setCooldownEnd(null);
                     localStorage.removeItem(`scratchcard_cooldown_${vendor.id}`);
+                    localStorage.setItem(`scratchcard_attempts_${vendor.id}`, '3');
+                    setAttemptsRemaining(3);
                     // Reset game
                     setSelectedBoxes([]);
-                    setRevealedValues({});
+                    setRevealedValues([]);
                 }
             }, 100);
             
@@ -180,17 +200,30 @@ const ScratchCardGame: React.FC<ScratchCardGameProps> = ({ vendor, onWin }) => {
                     }));
                 }
             } else {
-                // LOSE - Show result for 3 seconds, then start cooldown
+                // LOSE - Decrease attempts
                 setGameResult('lost');
                 setShowingResult(true);
                 
-                // After 3 seconds, switch to cooldown timer
+                const newAttempts = attemptsRemaining - 1;
+                setAttemptsRemaining(newAttempts);
+                localStorage.setItem(`scratchcard_attempts_${vendor.id}`, newAttempts.toString());
+                
+                // After 3 seconds (to show selected cards), check if any attempts left
                 setTimeout(() => {
                     setShowingResult(false);
-                    setGameResult('cooldown');
-                    const cooldownEnd = Date.now() + 30000; // 30 seconds
-                    setCooldownEnd(cooldownEnd);
-                    localStorage.setItem(`scratchcard_cooldown_${vendor.id}`, cooldownEnd.toString());
+                    
+                    if (newAttempts <= 0) {
+                        // No attempts left, start 20-second cooldown
+                        setGameResult('cooldown');
+                        const cooldownEnd = Date.now() + 20000; // 20 seconds
+                        setCooldownEnd(cooldownEnd);
+                        localStorage.setItem(`scratchcard_cooldown_${vendor.id}`, cooldownEnd.toString());
+                    } else {
+                        // Still have attempts, reset for next try after showing cards
+                        setGameResult('playing');
+                        setSelectedBoxes([]);
+                        setRevealedValues({});
+                    }
                 }, 3000);
             }
         }
@@ -300,15 +333,31 @@ const ScratchCardGame: React.FC<ScratchCardGameProps> = ({ vendor, onWin }) => {
     }
 
     return (
-        <div className="relative h-full w-full bg-gradient-to-br from-orange-900 via-orange-700 to-red-800 rounded-xl overflow-hidden">
-            {/* Animated background */}
-            <div className="absolute inset-0 opacity-20">
-                <div className="absolute top-0 left-0 w-96 h-96 bg-yellow-400 rounded-full blur-3xl animate-pulse"></div>
-                <div className="absolute bottom-0 right-0 w-96 h-96 bg-orange-400 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
-            </div>
+        <div className="relative h-full w-full rounded-xl overflow-hidden">
+            {/* Realistic scratch card background */}
+            <div 
+                className="absolute inset-0 bg-cover bg-center"
+                style={{
+                    backgroundImage: 'url(https://ik.imagekit.io/7grri5v7d/scratch%20card.png)',
+                    filter: 'brightness(0.5) saturate(1.1)'
+                }}
+            ></div>
+            
+            {/* Overlay gradient for better contrast */}
+            <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-black/70"></div>
 
             {/* Content */}
             <div className="relative z-10 flex flex-col h-full p-3 pb-20">
+                {/* Close button - top right */}
+                <button 
+                    onClick={onBack}
+                    className="absolute top-4 right-4 w-10 h-10 bg-white/90 hover:bg-white rounded-full flex items-center justify-center transition-all shadow-lg z-50 group"
+                >
+                    <svg className="w-6 h-6 text-gray-800 group-hover:text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+
                 {/* Header */}
                 <div className="text-center mb-2">
                     <h2 className="text-xl font-bold text-yellow-300 drop-shadow-lg mb-1">
@@ -317,18 +366,67 @@ const ScratchCardGame: React.FC<ScratchCardGameProps> = ({ vendor, onWin }) => {
                     <p className="text-white text-[10px] drop-shadow-md">
                         Match 3 boxes to win discount or free item!
                     </p>
-                    <div className="mt-1 inline-block bg-white/20 backdrop-blur-sm rounded-full px-2.5 py-0.5">
-                        <span className="text-white font-bold text-[11px]">Up to {maxDiscount}% OFF + Free Items</span>
+                    <div className="mt-1 flex items-center justify-center gap-2">
+                        <div className="inline-block bg-white/20 backdrop-blur-sm rounded-full px-2.5 py-0.5">
+                            <span className="text-white font-bold text-[11px]">Up to {maxDiscount}% OFF + Free Items</span>
+                        </div>
+                        <div className="inline-block bg-green-500/30 backdrop-blur-sm rounded-full px-2.5 py-0.5 border border-green-400/50">
+                            <span className="text-green-200 font-bold text-[11px]">🎮 Attempts: {attemptsRemaining}/3</span>
+                        </div>
                     </div>
                 </div>
 
                 {/* Game Board */}
                 <div className="flex-1 flex items-start justify-center min-h-0 pt-1">
-                    {showingResult ? (
-                        <div className="text-center animate-fade-in-scale">
-                            <div className="text-5xl mb-3">😔</div>
-                            <p className="text-white text-xl font-bold mb-2">No Match!</p>
-                            <p className="text-yellow-300 text-sm">Preparing next try...</p>
+                    {showingResult && gameResult === 'lost' ? (
+                        <div className="w-full px-1.5 mx-auto">
+                            {/* Show selected cards for 3 seconds */}
+                            <div className="grid grid-cols-5 gap-1 max-w-[380px] mx-auto mb-4">
+                                {[...Array(20)].map((_, index) => {
+                                    const isSelected = selectedBoxes.includes(index);
+                                    const isRevealed = revealedValues[index] !== undefined;
+                                    const value = revealedValues[index];
+                                    
+                                    return (
+                                        <div key={index} className="flex flex-col items-center">
+                                            <button
+                                                disabled
+                                                className={`relative w-full aspect-square rounded-md transition-all duration-300 ${
+                                                    isRevealed
+                                                        ? 'bg-gradient-to-br from-yellow-300 to-orange-400 scale-105 shadow-xl'
+                                                        : 'bg-gradient-to-br from-gray-700 to-gray-900 opacity-50'
+                                                }`}
+                                            >
+                                                {isRevealed ? (
+                                                    <div className="absolute inset-0 flex flex-col items-center justify-center">
+                                                        {typeof value === 'number' ? (
+                                                            <span className="text-lg sm:text-xl font-black text-red-600">{value}%</span>
+                                                        ) : (
+                                                            <img 
+                                                                src={freeItemImages[value as FreeItemType]} 
+                                                                alt={value as string}
+                                                                className="w-8 h-8 sm:w-10 sm:h-10 object-contain"
+                                                            />
+                                                        )}
+                                                    </div>
+                                                ) : (
+                                                    <div className="absolute inset-0 flex items-center justify-center">
+                                                        <span className="text-lg sm:text-xl opacity-50">❓</span>
+                                                    </div>
+                                                )}
+                                            </button>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                            {/* No match message */}
+                            <div className="text-center animate-fade-in-scale">
+                                <div className="text-5xl mb-3">😔</div>
+                                <p className="text-white text-xl font-bold mb-2">No Match!</p>
+                                <p className="text-yellow-300 text-sm">
+                                    {attemptsRemaining > 0 ? `${attemptsRemaining} attempt${attemptsRemaining !== 1 ? 's' : ''} remaining...` : 'Out of attempts...'}
+                                </p>
+                            </div>
                         </div>
                     ) : gameResult === 'cooldown' ? (
                         <div className="text-center">
@@ -337,7 +435,7 @@ const ScratchCardGame: React.FC<ScratchCardGameProps> = ({ vendor, onWin }) => {
                             <div className="text-4xl font-bold text-yellow-300 drop-shadow-lg">
                                 {formatTime(timeLeft)}
                             </div>
-                            <p className="text-white/80 text-xs mt-3">Better luck next time!</p>
+                            <p className="text-white/80 text-xs mt-3">You'll get 3 new attempts!</p>
                         </div>
                     ) : gameResult === 'won' ? (
                         <div className="text-center animate-fade-in-scale">

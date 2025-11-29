@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Vendor, FreeItemType } from '../../types';
 
-type RewardValue = number | FreeItemType;
+type RewardValue = number | FreeItemType | 'LOSE' | 'FREE_SPIN';
 
 interface SpinWheelGameProps {
     vendor: Vendor;
@@ -14,6 +14,7 @@ const SpinWheelGame: React.FC<SpinWheelGameProps> = ({ vendor, onWin, onBack }) 
     const [rotation, setRotation] = useState(0);
     const [segments, setSegments] = useState<RewardValue[]>([]);
     const [wonPrize, setWonPrize] = useState<RewardValue | null>(null);
+    const [showHand, setShowHand] = useState(false);
 
     const maxDiscount = vendor.scratchCardSettings?.maxDiscount || 20;
     const selectedFreeItems = vendor.scratchCardSettings?.selectedFreeItems || [];
@@ -42,10 +43,13 @@ const SpinWheelGame: React.FC<SpinWheelGameProps> = ({ vendor, onWin, onBack }) 
         const values: RewardValue[] = [];
         const availableFreeItems = selectedFreeItems.length > 0 ? selectedFreeItems : Object.values(FreeItemType);
         
+        // Add special segments
+        values.push('LOSE', 'FREE_SPIN');
+        
         // Add discounts
         values.push(5, 10, 15, maxDiscount);
         
-        // Add free items (4 items to make 8 segments total)
+        // Add free items (4 items to make 10 segments total)
         availableFreeItems.slice(0, 4).forEach(item => values.push(item));
         
         setSegments(values.sort(() => Math.random() - 0.5));
@@ -55,6 +59,10 @@ const SpinWheelGame: React.FC<SpinWheelGameProps> = ({ vendor, onWin, onBack }) 
         if (isSpinning) return;
         
         setIsSpinning(true);
+        setShowHand(true);
+        
+        // Hand animation - show hand spinning
+        setTimeout(() => setShowHand(false), 800);
         
         // Calculate random winning segment
         const winningIndex = Math.floor(Math.random() * segments.length);
@@ -67,18 +75,42 @@ const SpinWheelGame: React.FC<SpinWheelGameProps> = ({ vendor, onWin, onBack }) 
         
         // After spin completes
         setTimeout(() => {
-            setWonPrize(segments[winningIndex]);
-            setTimeout(() => {
-                onWin(segments[winningIndex]);
-            }, 2000);
-        }, 4000);
+            const prize = segments[winningIndex];
+            setWonPrize(prize);
+            
+            // Handle different prize types
+            if (prize === 'LOSE') {
+                // Show lose message, then allow retry
+                setTimeout(() => {
+                    setIsSpinning(false);
+                    setWonPrize(null);
+                    setRotation(0);
+                }, 2500);
+            } else if (prize === 'FREE_SPIN') {
+                // Automatically spin again
+                setTimeout(() => {
+                    setWonPrize(null);
+                    setIsSpinning(false);
+                    setTimeout(() => spinWheel(), 500);
+                }, 2000);
+            } else {
+                // Win - trigger callback
+                setTimeout(() => {
+                    onWin(prize);
+                }, 2000);
+            }
+        }, 4500);
     };
 
     const getItemDisplay = (item: RewardValue) => {
-        if (typeof item === 'number') {
-            return { display: `${item}%`, image: null, color: 'from-orange-500 to-red-500' };
+        if (item === 'LOSE') {
+            return { display: '❌', text: 'LOSE', image: null, color: 'from-gray-700 to-gray-900' };
+        } else if (item === 'FREE_SPIN') {
+            return { display: '🔄', text: 'SPIN', image: null, color: 'from-green-500 to-emerald-600' };
+        } else if (typeof item === 'number') {
+            return { display: `${item}%`, text: null, image: null, color: 'from-orange-500 to-red-500' };
         } else {
-            return { display: item, image: freeItemImages[item], color: 'from-blue-500 to-purple-500' };
+            return { display: item, text: null, image: freeItemImages[item], color: 'from-blue-500 to-purple-500' };
         }
     };
 
@@ -90,7 +122,9 @@ const SpinWheelGame: React.FC<SpinWheelGameProps> = ({ vendor, onWin, onBack }) 
         'from-cyan-500 to-blue-600',
         'from-blue-500 to-indigo-600',
         'from-purple-500 to-violet-600',
-        'from-pink-500 to-rose-600'
+        'from-pink-500 to-rose-600',
+        'from-gray-600 to-gray-800',
+        'from-lime-500 to-green-600'
     ];
 
     return (
@@ -139,6 +173,13 @@ const SpinWheelGame: React.FC<SpinWheelGameProps> = ({ vendor, onWin, onBack }) 
                     </div>
 
                     <div className="relative">
+                        {/* Animated Hand */}
+                        {showHand && (
+                            <div className="absolute -right-16 top-1/2 -translate-y-1/2 z-40 animate-hand-spin">
+                                <div className="text-6xl transform rotate-[-30deg]">👉</div>
+                            </div>
+                        )}
+
                         {/* Pointer/Arrow at top */}
                         <div className="absolute -top-8 left-1/2 -translate-x-1/2 z-30">
                             <div className="relative">
@@ -151,17 +192,29 @@ const SpinWheelGame: React.FC<SpinWheelGameProps> = ({ vendor, onWin, onBack }) 
                             </div>
                         </div>
 
+                        {/* Wheel Stand Base */}
+                        <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 w-32 h-12 z-0">
+                            {/* Pole */}
+                            <div className="absolute left-1/2 -translate-x-1/2 -top-28 w-4 h-32 bg-gradient-to-b from-gray-600 to-gray-800 rounded-full shadow-xl border-2 border-gray-700"></div>
+                            {/* Base */}
+                            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-24 h-6 bg-gradient-to-b from-gray-700 to-gray-900 rounded-lg shadow-2xl border-2 border-gray-800"></div>
+                            <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-32 h-3 bg-gradient-to-b from-gray-800 to-black rounded-full shadow-2xl"></div>
+                        </div>
+
                         {/* Wheel */}
-                        <div className="relative w-72 h-72">
+                        <div className="relative w-64 h-64 z-10">
                             {/* Outer glow ring */}
                             <div className="absolute inset-0 rounded-full bg-gradient-to-r from-yellow-400 via-pink-400 to-purple-400 blur-xl opacity-50 animate-pulse"></div>
+                            
+                            {/* Wheel border frame */}
+                            <div className="absolute inset-0 rounded-full border-8 border-yellow-600 shadow-2xl"></div>
                             
                             {/* Wheel container */}
                             <div 
                                 className="relative w-full h-full rounded-full shadow-2xl transition-transform duration-[4000ms] ease-out"
                                 style={{ 
                                     transform: `rotate(${rotation}deg)`,
-                                    transition: isSpinning ? 'transform 4s cubic-bezier(0.17, 0.67, 0.12, 0.99)' : 'none'
+                                    transition: isSpinning ? 'transform 4.5s cubic-bezier(0.17, 0.67, 0.12, 0.99)' : 'none'
                                 }}
                             >
                                 {/* Segments */}
@@ -207,9 +260,21 @@ const SpinWheelGame: React.FC<SpinWheelGameProps> = ({ vendor, onWin, onBack }) 
 
                         {/* Win display */}
                         {wonPrize && (
-                            <div className="absolute inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm rounded-full animate-fade-in-scale">
+                            <div className="absolute inset-0 flex items-center justify-center bg-black/80 backdrop-blur-sm rounded-full animate-fade-in-scale z-50">
                                 <div className="text-center">
-                                    {typeof wonPrize === 'number' ? (
+                                    {wonPrize === 'LOSE' ? (
+                                        <>
+                                            <div className="text-6xl mb-3 animate-bounce">😢</div>
+                                            <div className="text-red-400 text-2xl font-bold mb-2">Better Luck!</div>
+                                            <div className="text-white text-sm">Try again...</div>
+                                        </>
+                                    ) : wonPrize === 'FREE_SPIN' ? (
+                                        <>
+                                            <div className="text-6xl mb-3 animate-spin-slow">🔄</div>
+                                            <div className="text-green-400 text-2xl font-bold mb-2">FREE SPIN!</div>
+                                            <div className="text-white text-sm">Spinning again...</div>
+                                        </>
+                                    ) : typeof wonPrize === 'number' ? (
                                         <>
                                             <div className="text-6xl font-black text-yellow-300 drop-shadow-2xl mb-2 animate-bounce">
                                                 {wonPrize}%
@@ -219,8 +284,8 @@ const SpinWheelGame: React.FC<SpinWheelGameProps> = ({ vendor, onWin, onBack }) 
                                     ) : (
                                         <>
                                             <img 
-                                                src={freeItemImages[wonPrize]} 
-                                                alt={wonPrize}
+                                                src={freeItemImages[wonPrize as FreeItemType]} 
+                                                alt={wonPrize as string}
                                                 className="w-24 h-24 object-contain mx-auto mb-2 animate-bounce"
                                             />
                                             <div className="text-white text-lg font-bold">Free {wonPrize}!</div>
@@ -237,7 +302,7 @@ const SpinWheelGame: React.FC<SpinWheelGameProps> = ({ vendor, onWin, onBack }) 
                     <div className="text-center mt-4">
                         <button
                             onClick={spinWheel}
-                            className="bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 text-white px-12 py-4 rounded-2xl font-black text-2xl shadow-2xl hover:scale-110 transition-all duration-300 border-4 border-white/30 animate-pulse"
+                            className="bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 text-white px-10 py-3 rounded-2xl font-black text-xl shadow-2xl hover:scale-105 transition-all duration-300 border-4 border-white/30 animate-pulse"
                         >
                             🎰 SPIN!
                         </button>
@@ -258,6 +323,35 @@ const SpinWheelGame: React.FC<SpinWheelGameProps> = ({ vendor, onWin, onBack }) 
                 }
                 .animate-fade-in-scale {
                     animation: fade-in-scale 0.5s ease-out;
+                }
+                @keyframes hand-spin {
+                    0% {
+                        transform: translateX(100px) translateY(-50%) rotate(-30deg);
+                        opacity: 0;
+                    }
+                    20% {
+                        opacity: 1;
+                    }
+                    50% {
+                        transform: translateX(0) translateY(-50%) rotate(-30deg);
+                    }
+                    70% {
+                        transform: translateX(-20px) translateY(-50%) rotate(-45deg);
+                    }
+                    100% {
+                        transform: translateX(100px) translateY(-50%) rotate(-30deg);
+                        opacity: 0;
+                    }
+                }
+                .animate-hand-spin {
+                    animation: hand-spin 0.8s ease-in-out;
+                }
+                @keyframes spin-slow {
+                    from { transform: rotate(0deg); }
+                    to { transform: rotate(360deg); }
+                }
+                .animate-spin-slow {
+                    animation: spin-slow 2s linear infinite;
                 }
             `}</style>
         </div>

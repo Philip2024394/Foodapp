@@ -2,6 +2,9 @@ import React, { useState } from 'react';
 import { SocialPlatform, Vendor } from '../../types';
 import { XMarkIcon, PhotoIcon, LinkIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
 import FileUploadInput from './FileUploadInput';
+import { ShareProofsRepo } from '@/lib/appwriteRepositories';
+import { uploadImage } from '@/lib/storageHelpers';
+import ShareCelebration from './ShareCelebration';
 
 interface ShareProofModalProps {
     isOpen: boolean;
@@ -15,8 +18,10 @@ const ShareProofModal: React.FC<ShareProofModalProps> = ({ isOpen, onClose, vend
     const [screenshot, setScreenshot] = useState<File | null>(null);
     const [screenshotPreview, setScreenshotPreview] = useState<string>('');
     const [postLink, setPostLink] = useState('');
+    const [uploaded, setUploaded] = useState<{ fileId: string; url: string } | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [showSuccess, setShowSuccess] = useState(false);
+    const [discountCode, setDiscountCode] = useState<string>('');
 
     if (!isOpen) return null;
 
@@ -36,23 +41,38 @@ const ShareProofModal: React.FC<ShareProofModalProps> = ({ isOpen, onClose, vend
         }
 
         setIsSubmitting(true);
-        
-        // Simulate upload delay
-        await new Promise(resolve => setTimeout(resolve, 1500));
+        try {
+            // Upload image to Appwrite storage if not already uploaded
+            const up = uploaded || await uploadImage(screenshot);
+            setUploaded(up);
+
+            // Persist Share Proof
+            await ShareProofsRepo.create({
+                userId: vendor.ownerId || 'unknown_user',
+                vendorId: vendor.id,
+                platform: String(platform),
+                screenshotUrl: up.url,
+                postLink: postLink.trim(),
+                promoCode: '',
+                isVerified: 'false',
+                isUsed: 'false',
+                createdAt: new Date().toISOString(),
+            });
+        } catch (e) {
+            console.warn('Failed to submit share proof', e);
+            setIsSubmitting(false);
+            return;
+        }
+
+        // Generate discount code
+        const code = `SHARE10-${Math.random().toString(36).substr(2, 5).toUpperCase()}`;
+        setDiscountCode(code);
         
         onSubmit(screenshot, postLink);
         
         setShowSuccess(true);
         
-        // Auto close after showing success
-        setTimeout(() => {
-            setShowSuccess(false);
-            setScreenshot(null);
-            setScreenshotPreview('');
-            setPostLink('');
-            setIsSubmitting(false);
-            onClose();
-        }, 2500);
+        // Auto close after showing success (handled by ShareCelebration component)
     };
 
     const getPlatformColor = () => {
@@ -70,20 +90,17 @@ const ShareProofModal: React.FC<ShareProofModalProps> = ({ isOpen, onClose, vend
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
             {showSuccess ? (
-                <div className="bg-white rounded-3xl p-8 max-w-md w-full text-center animate-fade-in-scale">
-                    <div className="mb-4 flex justify-center">
-                        <div className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center">
-                            <CheckCircleIcon className="w-12 h-12 text-green-600" />
-                        </div>
-                    </div>
-                    <h3 className="text-2xl font-bold text-gray-900 mb-2">Success!</h3>
-                    <p className="text-gray-600 mb-4">
-                        Your share proof has been submitted. You'll receive your <span className="font-bold text-orange-600">10% dine-in discount code</span> shortly!
-                    </p>
-                    <p className="text-sm text-gray-500">
-                        The restaurant has been notified via WhatsApp
-                    </p>
-                </div>
+                <ShareCelebration 
+                    discountCode={discountCode}
+                    onComplete={() => {
+                        setShowSuccess(false);
+                        setScreenshot(null);
+                        setScreenshotPreview('');
+                        setPostLink('');
+                        setIsSubmitting(false);
+                        onClose();
+                    }}
+                />
             ) : (
                 <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto">
                     {/* Header */}
@@ -157,12 +174,12 @@ const ShareProofModal: React.FC<ShareProofModalProps> = ({ isOpen, onClose, vend
                                 </div>
                             ) : (
                                 <FileUploadInput
+                                    id="shareProofScreenshot"
                                     label=""
-                                    accept="image/*"
-                                    onChange={(e) => {
-                                        const file = e.target.files?.[0];
-                                        if (file) handleScreenshotChange(file);
-                                    }}
+                                    required
+                                    onFileSelect={(file) => handleScreenshotChange(file)}
+                                    autoUpload
+                                    onUploaded={(res) => setUploaded(res)}
                                 />
                             )}
                         </div>

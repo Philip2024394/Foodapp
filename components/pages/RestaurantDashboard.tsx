@@ -1,8 +1,8 @@
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Vendor, MenuItem, Booking, BookingType, Discount, ShopItem, Voucher, MembershipTier, RestaurantEvent, RestaurantEventType, CateringService, CateringEventType, AlcoholMenu, AlcoholDrink } from '../../types';
 import { useDataContext } from '../../hooks/useDataContext';
-import { StarIcon, FoodIcon, EditIcon, TrashIcon, GiftIcon } from '../common/Icon';
+import { StarIcon, FoodIcon, EditIcon, TrashIcon, GiftIcon, CheckIcon } from '../common/Icon';
 import Modal from '../common/Modal';
 import ToggleSwitch from '../common/ToggleSwitch';
 import LoadingSpinner from '../common/LoadingSpinner';
@@ -12,56 +12,12 @@ import { validateIndonesianPhoneNumber, formatPhoneNumberDisplay } from '../../u
 import RestaurantPOS from '../common/RestaurantPOS';
 import LoyaltyProgramManager from '../vendor/LoyaltyProgramManager';
 import RestaurantAnalyticsDashboard from '../common/RestaurantAnalyticsDashboard';
-
-// Indonesian Banks List
-const INDONESIAN_BANKS = [
-    'BCA (Bank Central Asia)',
-    'Mandiri',
-    'BRI (Bank Rakyat Indonesia)',
-    'BNI (Bank Negara Indonesia)',
-    'CIMB Niaga',
-    'Danamon',
-    'Permata Bank',
-    'BTN (Bank Tabungan Negara)',
-    'Maybank Indonesia',
-    'OCBC NISP',
-    'Panin Bank',
-    'Bank Syariah Indonesia (BSI)',
-    'Bank Mega',
-    'BTPN (Bank Tabungan Pensiunan Nasional)',
-    'Bukopin',
-    'BCA Syariah',
-    'Muamalat',
-    'BJB (Bank Jabar Banten)',
-    'Bank Jatim',
-    'Bank DKI',
-    'Jenius by BTPN',
-    'Blu by BCA Digital',
-    'Digibank by DBS',
-    'Allo Bank',
-    'Seabank',
-    'Neobank',
-    'GoPay',
-    'OVO',
-    'Dana',
-    'LinkAja',
-    'ShopeePay'
-];
-
-// Mock logged-in vendor for demo purposes. In a real app, this would come from an auth context.
-const LOGGED_IN_VENDOR_ID = 'v1'; // Warung Bu Ani
-
-type DashboardPage = 'orders' | 'menu' | 'loyalty' | 'analytics' | 'scheduled' | 'profile' | 'bank' | 'membership' | 'events' | 'promotions' | 'vouchers' | 'catering' | 'alcohol';
-
-const StatCard: React.FC<{ title: string; value: string | number; icon: React.ReactNode }> = ({ title, value, icon }) => (
-    <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-xl p-4 flex items-center space-x-4">
-        <div className="p-3 bg-black/20 rounded-full text-orange-400">{icon}</div>
-        <div>
-            <p className="text-2xl font-bold text-white">{value}</p>
-            <p className="text-sm text-stone-400">{title}</p>
-        </div>
-    </div>
-);
+import { account } from '../../lib/appwrite';
+import { INDONESIAN_BANKS, WEEK_DAYS, AVAILABLE_TAGS, DashboardPage } from '../restaurant/constants';
+import { StatCard } from '../restaurant/StatCard';
+import RestaurantOrdersTab from '../restaurant/RestaurantOrdersTab';
+import RestaurantBankTab from '../restaurant/RestaurantBankTab';
+import RestaurantMenuTab from '../restaurant/RestaurantMenuTab';
 
 const RestaurantDashboard: React.FC = () => {
     const { 
@@ -74,9 +30,37 @@ const RestaurantDashboard: React.FC = () => {
         updateMenuItemDetails
     } = useDataContext();
 
+    // Auth state
+    const [currentUser, setCurrentUser] = useState<any>(null);
+    const [authLoading, setAuthLoading] = useState(true);
+    const [vendorId, setVendorId] = useState<string | null>(null);
+
     // Navigation state
     const [currentPage, setCurrentPage] = useState<DashboardPage>('orders');
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+    // Check authentication on mount
+    useEffect(() => {
+        const checkAuth = async () => {
+            try {
+                const user = await account.get();
+                setCurrentUser(user);
+                
+                // For now, try to match by email or use first vendor as demo
+                // TODO: In production, store vendorId in user prefs or use a lookup collection
+                const matchedVendor = vendors.find(v => v.id === 'v1'); // Demo fallback
+                if (matchedVendor) {
+                    setVendorId(matchedVendor.id);
+                }
+            } catch (error) {
+                console.error('Not authenticated:', error);
+                // User not signed in - redirect to auth page would happen here
+            } finally {
+                setAuthLoading(false);
+            }
+        };
+        checkAuth();
+    }, [vendors]);
     
     // Modal states
     const [isEditVendorModalOpen, setIsEditVendorModalOpen] = useState(false);
@@ -109,7 +93,7 @@ const RestaurantDashboard: React.FC = () => {
     const [newDiscount, setNewDiscount] = useState({ dayOfWeek: '1', percentage: '10', startTime: '16:00', endTime: '18:00' });
     const [newVoucher, setNewVoucher] = useState<Partial<Voucher>>({ title: '', discountAmount: 5000, validCategory: 'Food', description: '' });
     const [eventFormData, setEventFormData] = useState<Partial<RestaurantEvent>>({type: RestaurantEventType.LIVE_MUSIC, name: '', description: '', image: '', startTime: '', endTime: '', isActive: false});
-    const [voucherBanners, setVoucherBanners] = useState<string[]>([]); // Restaurant uploaded banner images
+    const [voucherBanners, setVoucherBanners] = useState<string[]>([]);
     const [selectedBanner, setSelectedBanner] = useState<string | null>(null);
     const [voucherBannerUrl, setVoucherBannerUrl] = useState('');
     const [cateringFormData, setCateringFormData] = useState<CateringService>({
@@ -135,16 +119,24 @@ const RestaurantDashboard: React.FC = () => {
         price: 0,
         image: ''
     });
-    const weekDays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
-    const vendor = useMemo(() => vendors.find(v => v.id === LOGGED_IN_VENDOR_ID), [vendors]);
-    const menuItems = useMemo(() => streetFoodItems.filter(item => item.vendorId === LOGGED_IN_VENDOR_ID), [streetFoodItems]);
-    const orders = useMemo(() => 
-        bookingHistory.filter(b => 
+    const vendor = useMemo(() => {
+        if (!vendorId) return null;
+        return vendors.find(v => v.id === vendorId);
+    }, [vendors, vendorId]);
+    
+    const menuItems = useMemo(() => {
+        if (!vendorId) return [];
+        return streetFoodItems.filter(item => item.vendorId === vendorId);
+    }, [streetFoodItems, vendorId]);
+    
+    const orders = useMemo(() => {
+        if (!vendorId) return [];
+        return bookingHistory.filter(b => 
             b.type === BookingType.PURCHASE_DELIVERY && 
-            b.details.items?.some(i => i.item.vendorId === LOGGED_IN_VENDOR_ID)
-        ), 
-    [bookingHistory]);
+            b.details.items?.some(i => i.item.vendorId === vendorId)
+        );
+    }, [bookingHistory, vendorId]);
     
     // Initialize form data when vendor changes
     useEffect(() => {
@@ -194,9 +186,101 @@ const RestaurantDashboard: React.FC = () => {
             const isMenuItem = 'chiliLevel' in selectedItemToEdit;
             setItemEditFormData({
                 description: selectedItemToEdit.description,
-                chiliLevel: isMenuItem ? selectedItemToEdit.chiliLevel : undefined,
-                cookingTime: isMenuItem ? selectedItemToEdit.cookingTime : undefined,
-                hasGarlic: isMenuItem ? selectedItemToEdit.hasGarlic : undefined,
+    // Show loading while checking auth
+    if (authLoading) {
+        return (
+            <div className="min-h-screen bg-stone-900 flex items-center justify-center">
+                <div className="text-center">
+                    <LoadingSpinner />
+                    <p className="text-white mt-4">Checking authentication...</p>
+                </div>
+            </div>
+        );
+    }
+
+    // Not authenticated - show error
+    if (!currentUser) {
+        return (
+            <div className="min-h-screen bg-stone-900 flex items-center justify-center p-4">
+                <div className="bg-white/5 border border-white/10 rounded-xl p-8 max-w-md text-center">
+                    <div className="text-6xl mb-4">🔒</div>
+                    <h2 className="text-2xl font-bold text-white mb-2">Authentication Required</h2>
+                    <p className="text-stone-400 mb-6">You must be signed in to access the restaurant dashboard.</p>
+                    <button
+                        onClick={() => window.location.href = '/'}
+                        className="bg-orange-500 hover:bg-orange-600 text-white font-bold px-6 py-3 rounded-lg"
+                    >
+                        Return to Sign In
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
+    // No vendor profile yet - show onboarding
+    if (!vendor) {
+        return (
+            <div className="min-h-screen bg-gradient-to-br from-orange-900 via-stone-900 to-stone-950 flex items-center justify-center p-4">
+                <div className="bg-white/10 backdrop-blur-lg border border-white/20 rounded-2xl p-8 max-w-2xl">
+                    <div className="text-center mb-8">
+                        <div className="text-6xl mb-4">👋</div>
+                        <h2 className="text-3xl font-bold text-white mb-2">Welcome, {currentUser.name}!</h2>
+                        <p className="text-stone-300 text-lg">Your account is created. Now let's set up your restaurant profile.</p>
+                    </div>
+
+                    <div className="bg-orange-500/20 border border-orange-500/30 rounded-xl p-6 mb-6">
+                        <h3 className="text-xl font-bold text-white mb-3">🚀 Coming Soon: Restaurant Setup</h3>
+                        <p className="text-stone-300 mb-4">
+                            We're building an onboarding wizard to help you:
+                        </p>
+                        <ul className="space-y-2 text-stone-300">
+                            <li className="flex items-center gap-2">
+                                <span className="text-green-400">✓</span> Add your restaurant details & location
+                            </li>
+                            <li className="flex items-center gap-2">
+                                <span className="text-green-400">✓</span> Upload your logo and photos
+                            </li>
+                            <li className="flex items-center gap-2">
+                                <span className="text-green-400">✓</span> Create your menu with prices
+                            </li>
+                            <li className="flex items-center gap-2">
+                                <span className="text-green-400">✓</span> Set up payment details
+                            </li>
+                        </ul>
+                    </div>
+
+                    <div className="bg-white/5 border border-white/10 rounded-xl p-6 text-center">
+                        <p className="text-stone-400 text-sm mb-4">
+                            For now, you can explore the demo dashboard with sample data.
+                        </p>
+                        <div className="flex gap-3 justify-center">
+                            <button
+                                onClick={async () => {
+                                    // Use the first demo vendor for now
+                                    if (vendors.length > 0) {
+                                        setVendorId(vendors[0].id);
+                                    }
+                                }}
+                                disabled={vendors.length === 0}
+                                className="bg-orange-500 hover:bg-orange-600 text-white font-bold px-6 py-3 rounded-lg disabled:opacity-50"
+                            >
+                                View Demo Dashboard
+                            </button>
+                            <button
+                                onClick={async () => {
+                                    await account.deleteSession('current');
+                                    window.location.href = '/';
+                                }}
+                                className="bg-stone-600 hover:bg-stone-500 text-white font-bold px-6 py-3 rounded-lg"
+                            >
+                                Sign Out
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    }           hasGarlic: isMenuItem ? selectedItemToEdit.hasGarlic : undefined,
                 subcategory: isMenuItem ? selectedItemToEdit.subcategory : undefined,
                 tags: isMenuItem ? (selectedItemToEdit.tags || []) : undefined,
             });
@@ -314,8 +398,6 @@ const RestaurantDashboard: React.FC = () => {
             });
         }
     };
-
-    const availableTags = ['Spicy', 'Crispy', 'Rice', 'Noodle', 'Salad'];
     
     const hasActiveMembership = isMembershipActive(vendor.membershipExpiry);
     const currentPackage = MEMBERSHIP_PACKAGES.find(pkg => pkg.tier === vendor.membershipTier);
@@ -592,43 +674,7 @@ const RestaurantDashboard: React.FC = () => {
 
             {/* Content Sections - Conditionally Rendered */}
             <div className="px-4">
-                {currentPage === 'orders' && (
-                    <div className="space-y-6">
-                        {/* Feature Explanation */}
-                        <div className="bg-gradient-to-r from-purple-500/20 to-pink-500/20 border-2 border-purple-500/30 rounded-2xl p-6">
-                            <h2 className="text-2xl font-bold text-white mb-3 flex items-center gap-3">
-                                <span className="text-3xl">📋</span>
-                                Orders & POS System
-                            </h2>
-                            <p className="text-stone-300 text-lg mb-4">
-                                Real-time order management system. Accept, prepare, and track customer orders from start to delivery.
-                            </p>
-                            <div className="grid md:grid-cols-3 gap-4 text-sm">
-                                <div className="bg-white/10 rounded-lg p-3">
-                                    <div className="font-bold text-green-400 mb-1">✓ Accept Orders</div>
-                                    <div className="text-stone-400">Confirm or reject incoming orders instantly</div>
-                                </div>
-                                <div className="bg-white/10 rounded-lg p-3">
-                                    <div className="font-bold text-yellow-400 mb-1">👨‍🍳 Track Progress</div>
-                                    <div className="text-stone-400">Update status: Preparing → Ready → Delivered</div>
-                                </div>
-                                <div className="bg-white/10 rounded-lg p-3">
-                                    <div className="font-bold text-blue-400 mb-1">📞 Contact</div>
-                                    <div className="text-stone-400">Message customers via WhatsApp directly</div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <RestaurantPOS 
-                            vendorId={vendor.id}
-                            orders={[]} 
-                            onAcceptOrder={() => {}} 
-                            onRejectOrder={() => {}} 
-                            onUpdateStatus={() => {}}
-                            onPrintReceipt={() => {}}
-                        />
-                    </div>
-                )}
+                {currentPage === 'orders' && <RestaurantOrdersTab vendor={vendor} orders={orders} />}
 
                 {currentPage === 'loyalty' && (
                     <div className="space-y-6">
@@ -759,143 +805,17 @@ const RestaurantDashboard: React.FC = () => {
                 )}
                 
                 {currentPage === 'menu' && (
-                    <div className="space-y-6">
-                        {/* Feature Explanation */}
-                        <div className="bg-gradient-to-r from-orange-500/20 to-amber-500/20 border-2 border-orange-500/30 rounded-2xl p-6">
-                            <h2 className="text-2xl font-bold text-white mb-3 flex items-center gap-3">
-                                <span className="text-3xl">🍜</span>
-                                Menu Management
-                            </h2>
-                            <p className="text-stone-300 text-lg mb-4">
-                                Add, edit, and manage your menu items. Upload photos, set prices, toggle availability, and organize with tags.
-                            </p>
-                            <div className="grid md:grid-cols-4 gap-4 text-sm">
-                                <div className="bg-white/10 rounded-lg p-3">
-                                    <div className="font-bold text-green-400 mb-1">✓ Availability</div>
-                                    <div className="text-stone-400">Mark items as sold out instantly</div>
-                                </div>
-                                <div className="bg-white/10 rounded-lg p-3">
-                                    <div className="font-bold text-blue-400 mb-1">📸 Photos</div>
-                                    <div className="text-stone-400">Upload high-quality food images</div>
-                                </div>
-                                <div className="bg-white/10 rounded-lg p-3">
-                                    <div className="font-bold text-yellow-400 mb-1">💰 Pricing</div>
-                                    <div className="text-stone-400">Update prices anytime</div>
-                                </div>
-                                <div className="bg-white/10 rounded-lg p-3">
-                                    <div className="font-bold text-purple-400 mb-1">🏷️ Tags</div>
-                                    <div className="text-stone-400">Organize with spicy, vegan, etc.</div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <h2 className="text-3xl font-bold text-white mb-4">🍜 Menu Items</h2>
-                        <div className="space-y-4">
-                            {menuItems.map(item => (
-                                <div key={item.id} className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-xl p-6">
-                                    <div className="flex gap-6">
-                                        {/* Image Section */}
-                                        <div className="w-48 h-48 flex-shrink-0">
-                                            {item.image ? (
-                                                <button
-                                                    onClick={() => setViewingImage({ url: item.image!, name: item.name, description: item.description })}
-                                                    className="w-full h-full rounded-xl overflow-hidden border-2 border-orange-500/50 hover:border-orange-500 transition-all hover:scale-105"
-                                                >
-                                                    <img 
-                                                        src={item.image} 
-                                                        alt={item.name}
-                                                        className="w-full h-full object-cover"
-                                                    />
-                                                </button>
-                                            ) : (
-                                                <div className="w-full h-full bg-stone-800 rounded-xl flex flex-col items-center justify-center border-2 border-dashed border-stone-600">
-                                                    <svg className="w-16 h-16 text-stone-600 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                                    </svg>
-                                                    <p className="text-xs text-stone-500">No Image</p>
-                                                </div>
-                                            )}
-                                        </div>
-                                        
-                                        {/* Details Section */}
-                                        <div className="flex-1">
-                                            <div className="flex justify-between items-start mb-3">
-                                                <div>
-                                                    <p className="font-bold text-2xl text-white">{item.name}</p>
-                                                    <p className="text-xl text-orange-400 font-semibold mt-1">{formatIndonesianCurrency(item.price)}</p>
-                                                </div>
-                                                <div className="flex items-center gap-3">
-                                                    <ToggleSwitch 
-                                                        checked={itemAvailability[item.id] ?? true} 
-                                                        onChange={() => toggleItemAvailability(item.id)} 
-                                                    />
-                                                    <span className={`text-lg font-semibold ${itemAvailability[item.id] ? 'text-green-400' : 'text-red-400'}`}>
-                                                        {itemAvailability[item.id] ? '✅ Available' : '❌ Sold Out'}
-                                                    </span>
-                                                </div>
-                                            </div>
-                                            
-                                            <p className="text-stone-300 text-lg mb-3">{item.description}</p>
-                                            
-                                            <div className="flex flex-wrap gap-2 mb-4">
-                                                {item.subcategory && <span className="text-sm bg-white/10 px-3 py-1 rounded-full text-stone-300">{item.subcategory}</span>}
-                                                {item.tags?.map(tag => (
-                                                    <span key={tag} className="text-sm bg-orange-500/20 text-orange-300 px-3 py-1 rounded-full font-semibold">{tag}</span>
-                                                ))}
-                                            </div>
-                                            
-                                            {/* Image Upload Section */}
-                                            {uploadingImageFor === item.id ? (
-                                                <div className="space-y-3 p-4 bg-black/30 rounded-lg border border-orange-500/30">
-                                                    <div className="flex items-center gap-2 text-orange-400 font-semibold">
-                                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-                                                        </svg>
-                                                        Upload Image (Min: 800x600px)
-                                                    </div>
-                                                    <input
-                                                        type="text"
-                                                        placeholder="Paste image URL here..."
-                                                        value={imageUrl}
-                                                        onChange={(e) => setImageUrl(e.target.value)}
-                                                        className="w-full p-3 bg-white border border-stone-700 rounded-lg text-white text-lg"
-                                                        autoFocus
-                                                    />
-                                                    <div className="flex gap-2">
-                                                        <button
-                                                            onClick={() => handleImageUpload(item.id)}
-                                                            className="flex-1 p-3 bg-green-500 text-white font-bold rounded-lg hover:bg-green-600 text-lg"
-                                                        >
-                                                            ✅ Upload
-                                                        </button>
-                                                        <button
-                                                            onClick={() => {
-                                                                setUploadingImageFor(null);
-                                                                setImageUrl('');
-                                                            }}
-                                                            className="px-6 p-3 bg-stone-600 text-white font-bold rounded-lg hover:bg-stone-500 text-lg"
-                                                        >
-                                                            Cancel
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            ) : (
-                                                <button
-                                                    onClick={() => setUploadingImageFor(item.id)}
-                                                    className="p-3 bg-gradient-to-r from-orange-500 to-amber-500 text-white font-bold rounded-lg hover:from-orange-600 hover:to-amber-600 text-lg flex items-center gap-2"
-                                                >
-                                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                                    </svg>
-                                                    {item.image ? 'Change Image' : 'Add Image'}
-                                                </button>
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
+                    <RestaurantMenuTab
+                        menuItems={menuItems}
+                        itemAvailability={itemAvailability}
+                        toggleItemAvailability={toggleItemAvailability}
+                        uploadingImageFor={uploadingImageFor}
+                        setUploadingImageFor={setUploadingImageFor}
+                        imageUrl={imageUrl}
+                        setImageUrl={setImageUrl}
+                        handleImageUpload={handleImageUpload}
+                        setViewingImage={setViewingImage}
+                    />
                 )}
                 
                 {currentPage === 'events' && (
@@ -2469,118 +2389,14 @@ const RestaurantDashboard: React.FC = () => {
                 )}
                 
                 {currentPage === 'bank' && (
-                    <div className="space-y-6">
-                        {/* Feature Explanation */}
-                        <div className="bg-gradient-to-r from-teal-500/20 to-cyan-500/20 border-2 border-teal-500/30 rounded-2xl p-6">
-                            <h2 className="text-2xl font-bold text-white mb-3 flex items-center gap-3">
-                                <span className="text-3xl">🏦</span>
-                                Bank Details & Payment
-                            </h2>
-                            <p className="text-stone-300 text-lg mb-4">
-                                Setup your bank account to receive payments. Customers can transfer money directly to your account for orders.
-                            </p>
-                            <div className="grid md:grid-cols-3 gap-4 text-sm">
-                                <div className="bg-white/10 rounded-lg p-3">
-                                    <div className="font-bold text-green-400 mb-1">🏦 Bank Transfer</div>
-                                    <div className="text-stone-400">Direct payments to your account</div>
-                                </div>
-                                <div className="bg-white/10 rounded-lg p-3">
-                                    <div className="font-bold text-blue-400 mb-1">💳 Multiple Methods</div>
-                                    <div className="text-stone-400">Support BCA, Mandiri, GoPay, etc.</div>
-                                </div>
-                                <div className="bg-white/10 rounded-lg p-3">
-                                    <div className="font-bold text-purple-400 mb-1">💰 Delivery Fee</div>
-                                    <div className="text-stone-400">Set your standard delivery charge</div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <h2 className="text-3xl font-bold text-white mb-4">🏦 Payment Setup</h2>
-                        <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-xl p-8">
-                            <div className="space-y-6">
-                                <div>
-                                    <label className="block text-lg font-medium text-stone-300 mb-3">Select Bank <span className="text-red-500">*</span></label>
-                                    <select
-                                        value={bankFormData.bankName}
-                                        onChange={(e) => setBankFormData(prev => ({ ...prev, bankName: e.target.value }))}
-                                        className="w-full p-4 bg-white border border-stone-700 rounded-xl text-white text-lg"
-                                    >
-                                        <option value="">-- Choose Indonesian Bank --</option>
-                                        {INDONESIAN_BANKS.map(bank => (
-                                            <option key={bank} value={bank}>{bank}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                                
-                                <div>
-                                    <label className="block text-lg font-medium text-stone-300 mb-3">Account Holder Name <span className="text-red-500">*</span></label>
-                                    <input
-                                        type="text"
-                                        placeholder="e.g., Ani Lestari"
-                                        value={bankFormData.accountHolder}
-                                        onChange={(e) => setBankFormData(prev => ({ ...prev, accountHolder: e.target.value }))}
-                                        className="w-full p-4 bg-white border border-stone-700 rounded-xl text-white text-lg placeholder-stone-600"
-                                    />
-                                </div>
-                                
-                                <div>
-                                    <label className="block text-lg font-medium text-stone-300 mb-3">Account Number <span className="text-red-500">*</span></label>
-                                    <input
-                                        type="text"
-                                        placeholder="e.g., 1234567890"
-                                        value={bankFormData.accountNumber}
-                                        onChange={(e) => setBankFormData(prev => ({ ...prev, accountNumber: e.target.value.replace(/\D/g, '') }))}
-                                        className="w-full p-4 bg-white border border-stone-700 rounded-xl text-white text-lg font-mono placeholder-stone-600"
-                                    />
-                                </div>
-                                
-                                <div>
-                                    <label className="block text-lg font-medium text-stone-300 mb-3 flex items-center gap-2">
-                                        <svg className="w-6 h-6 text-green-400" fill="currentColor" viewBox="0 0 24 24">
-                                            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
-                                        </svg>
-                                        WhatsApp Number
-                                    </label>
-                                    <input
-                                        type="tel"
-                                        placeholder="e.g., 08123456789"
-                                        value={whatsAppFormData}
-                                        onChange={(e) => setWhatsAppFormData(e.target.value.replace(/\D/g, ''))}
-                                        className="w-full p-4 bg-white border border-green-500/30 rounded-xl text-white text-lg font-mono placeholder-stone-600"
-                                    />
-                                    <p className="text-sm text-stone-400 mt-2">Customers will contact you via WhatsApp for orders</p>
-                                </div>
-                                
-                                {vendor.bankDetails?.bankName && (
-                                    <div className="p-4 bg-green-500/10 border border-green-500/30 rounded-xl">
-                                        <p className="text-green-400 font-semibold mb-2">✅ Current Bank Details:</p>
-                                        <div className="grid grid-cols-3 gap-4 text-sm">
-                                            <div>
-                                                <p className="text-stone-500">Bank</p>
-                                                <p className="text-white font-bold">{vendor.bankDetails.bankName}</p>
-                                            </div>
-                                            <div>
-                                                <p className="text-stone-500">Account Holder</p>
-                                                <p className="text-white font-bold">{vendor.bankDetails.accountHolder}</p>
-                                            </div>
-                                            <div>
-                                                <p className="text-stone-500">Account Number</p>
-                                                <p className="text-white font-mono font-bold">{vendor.bankDetails.accountNumber}</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
-                                
-                                <button
-                                    onClick={handleSaveBankDetails}
-                                    disabled={!bankFormData.bankName || !bankFormData.accountHolder || !bankFormData.accountNumber}
-                                    className="w-full p-4 bg-gradient-to-r from-green-500 to-emerald-500 text-white font-bold text-xl rounded-xl hover:from-green-600 hover:to-emerald-600 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                    💾 Save Bank Details
-                                </button>
-                            </div>
-                        </div>
-                    </div>
+                    <RestaurantBankTab
+                        vendor={vendor}
+                        bankFormData={bankFormData}
+                        whatsAppFormData={whatsAppFormData}
+                        setBankFormData={setBankFormData}
+                        setWhatsAppFormData={setWhatsAppFormData}
+                        handleSaveBankDetails={handleSaveBankDetails}
+                    />
                 )}
                 
                 {currentPage === 'membership' && (
